@@ -6,6 +6,8 @@ use Acme\Bundle\AppBundle\Entity\Color;
 use Acme\Bundle\AppBundle\Entity\Fabric;
 use Akeneo\Channel\Component\Model\Channel;
 use Akeneo\Channel\Component\Model\LocaleInterface;
+use Akeneo\Connectivity\Connection\Application\Settings\Command\CreateConnectionCommand;
+use Akeneo\Connectivity\Connection\Domain\Settings\Model\ValueObject\FlowType;
 use Akeneo\Pim\Enrichment\Component\Category\Model\CategoryInterface;
 use Akeneo\Pim\Enrichment\Component\Comment\Model\Comment;
 use Akeneo\Pim\Enrichment\Component\Comment\Model\CommentInterface;
@@ -87,6 +89,15 @@ class FixturesContext extends BaseFixturesContext
     ];
 
     protected $username;
+
+    /**
+     * @Given There is a :connectionCode connection
+     */
+    public function thereIsAConnection($connectionCode)
+    {
+        $createConnectionCommand = new CreateConnectionCommand($connectionCode, $connectionCode, FlowType::DATA_SOURCE);
+        $this->getContainer()->get('akeneo_connectivity.connection.application.handler.create_connection')->handle($createConnectionCommand);
+    }
 
     /**
      * @param array|string $data
@@ -586,23 +597,6 @@ class FixturesContext extends BaseFixturesContext
             $row['resource']     = $product;
             $comments[$row['#']] = $this->createComment($row, $comments);
         }
-    }
-
-    /**
-     * @param string $sku
-     * @param string $attributeCodes
-     *
-     * @Given /^the "([^"]*)" product has the "([^"]*)" attributes?$/
-     */
-    public function theProductHasTheAttributes($sku, $attributeCodes)
-    {
-        $product = $this->getProduct($sku);
-
-        foreach ($this->listToArray($attributeCodes) as $code) {
-            $this->getProductBuilder()->addAttribute($product, $this->getAttribute($code));
-        }
-        $this->validate($product);
-        $this->getProductSaver()->save($product);
     }
 
     /**
@@ -1366,6 +1360,20 @@ class FixturesContext extends BaseFixturesContext
         foreach ($this->listToArray($products) as $identifier) {
             $productValue = $this->getProductValue($identifier, strtolower($attribute));
             $this->assertProductDataValueEquals($data, $productValue, strtolower($attribute));
+        }
+    }
+
+    /**
+     * @param string $attributeCode
+     * @param string $products
+     *
+     * @Given /^the value "([^"]*)" of products? (.*) should be empty$/
+     */
+    public function theValueOfProductsShouldBeEmpty($attributeCode, $products)
+    {
+        foreach ($this->listToArray($products) as $identifier) {
+            $product = $this->getProduct($identifier);
+            Assert::assertNull($product->getValue(strtolower($attributeCode)));
         }
     }
 

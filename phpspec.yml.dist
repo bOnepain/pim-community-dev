@@ -32,6 +32,13 @@ suites:
         src_path: src/Akeneo/Platform
         spec_prefix: Specification
 
+    ## Apps context
+    Apps:
+        namespace: Akeneo\Connectivity\Connection
+        psr4_prefix: Akeneo\Connectivity\Connection
+        spec_path: src/Akeneo/Connectivity/Connection/back/tests/Unit
+        src_path: src/Akeneo/Connectivity/Connection/back
+
     ## Akeneo Components
     Connector:
         namespace: Akeneo\Tool\Component\Connector
@@ -88,6 +95,11 @@ suites:
         psr4_prefix: Akeneo\Tool\Component\Versioning
         spec_path: src/Akeneo/Tool/Component/Versioning
         src_path: src/Akeneo/Tool/Component/Versioning
+    Email:
+        namespace: Akeneo\Tool\Component\Email
+        psr4_prefix: Akeneo\Tool\Component\Email
+        spec_path: src/Akeneo/Tool/Component/Email
+        src_path: src/Akeneo/Tool/Component/Email
 
     ## Akeneo Bundles
     BatchBundle:

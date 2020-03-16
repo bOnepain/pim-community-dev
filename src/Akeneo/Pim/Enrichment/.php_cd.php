@@ -20,7 +20,9 @@ $rules = [
         'Oro\Bundle\SecurityBundle\SecurityFacade',
         'Oro\Bundle\SecurityBundle\Annotation\AclAncestor',
         'Liip\ImagineBundle',
+        'Dompdf\Dompdf',
         'Webmozart\Assert\Assert',
+        'Psr\Log\LoggerInterface',
         // TODO the feature use the datagrid
         'Oro\Bundle\DataGridBundle',
         'Oro\Bundle\PimDataGridBundle',
@@ -118,6 +120,7 @@ $rules = [
         'Doctrine\Common',
         'Webmozart\Assert\Assert',
         'Akeneo\Pim\Structure\Component\Query\PublicApi',
+        'Psr\Log\LoggerInterface',
 
         // TIP-915: PIM/Enrichment should not be linked to AttributeOption
         // TIP-916: Do not check if entities exist in PQB filters or sorters
@@ -138,6 +141,7 @@ $rules = [
         // TIP-922: PIM/Enrichment should not be linked to Currency
         'Akeneo\Channel\Component\Repository\CurrencyRepositoryInterface',
         'Akeneo\Channel\Component\Query\FindActivatedCurrenciesInterface',
+        'Akeneo\Channel\Component\Model\CurrencyInterface',
 
         // TIP-926: Each context should have its own "User"
         // TIP-924: PIM/Enrichment should not be linked to User
@@ -149,7 +153,7 @@ $rules = [
 
         // TIP-927: Move EnsureConsistentAttributeGroupOrderTasklet to Structure
         'Akeneo\Pim\Structure\Component\Model\AttributeGroupInterface',
-        'Akeneo\Pim\Structure\Bundle\Doctrine\ORM\Query\FindAttributeGroupOrdersEqualOrSuperiorTo', //should not use bundle in component
+        'Akeneo\Pim\Structure\Component\AttributeGroup\Query\FindAttributeGroupOrdersEqualOrSuperiorTo',
 
         // TIP-928: PIM/Enrichment should not be linked to AssociationType
         'Akeneo\Pim\Structure\Component\Model\AssociationTypeInterface',
@@ -158,9 +162,6 @@ $rules = [
         // TIP-929: Extract the Attribute part of the ValidMetricValidator
         // TIP-929: Extract the Attribute part of the ValidMetricValidator
         'Akeneo\Pim\Structure\Component\Validator\Constraints\ValidMetric',
-
-        // TIP-930: ValueCollectionFactory should not log
-        'Psr\Log\LoggerInterface',
 
         // TIP-931: SearchQueryBuilder design problem
         'Akeneo\Pim\Enrichment\Bundle\Elasticsearch\SearchQueryBuilder',
@@ -193,9 +194,7 @@ $rules = [
         'Akeneo\Pim\Enrichment\Bundle\Filter\CollectionFilterInterface',
 
         // TIP-1012: Create a Measure component
-        'Akeneo\Tool\Bundle\MeasureBundle\Convert\MeasureConverter',
-        'Akeneo\Tool\Bundle\MeasureBundle\Exception\MeasureException',
-        'Akeneo\Tool\Bundle\MeasureBundle\Manager\MeasureManager',
+        'Akeneo\Tool\Bundle\MeasureBundle',
 
         // TIP-1033: PIM/Enrichment should not depend on EntityRepository
         'Doctrine\ORM\EntityRepository',

@@ -305,7 +305,7 @@ class FamilyController
                 ];
             }
 
-            return new JsonResponse($errors, Response::HTTP_CONFLICT);
+            return new JsonResponse($errors, Response::HTTP_BAD_REQUEST);
         }
 
         $this->saver->save($family);
@@ -372,7 +372,11 @@ class FamilyController
 
         $normalizedFamilies = [];
         foreach ($families as $family) {
-            $normalizedFamilies[$family->getCode()] = $this->normalizer->normalize($family, 'internal_api');
+            $normalizedFamilies[$family->getCode()] = $this->normalizer->normalize(
+                $family,
+                'internal_api',
+                ['expanded' => false]
+            );
         }
 
         return new JsonResponse($normalizedFamilies);

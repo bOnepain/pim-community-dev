@@ -30,7 +30,10 @@ class InMemoryAttributeRepository implements AttributeRepositoryInterface, Saver
      */
     public function __construct(array $attributes = [])
     {
-        $this->attributes = new ArrayCollection($attributes);
+        $this->attributes = new ArrayCollection();
+        foreach ($attributes as $attribute) {
+            $this->attributes->set($attribute->getCode(), $attribute);
+        }
     }
 
     /**
@@ -107,7 +110,7 @@ class InMemoryAttributeRepository implements AttributeRepositoryInterface, Saver
      */
     public function findOneBy(array $criteria)
     {
-        throw new NotImplementedException(__METHOD__);
+        return $this->findBy($criteria, null, 1)[0] ?? null;
     }
 
     /**
@@ -139,7 +142,15 @@ class InMemoryAttributeRepository implements AttributeRepositoryInterface, Saver
      */
     public function findMediaAttributeCodes()
     {
-        throw new NotImplementedException(__METHOD__);
+        $attributeCodes = [];
+        /** @var AttributeInterface $attribute */
+        foreach ($this->attributes as $attribute) {
+            if (AttributeTypes::BACKEND_TYPE_MEDIA === $attribute->getBackendType()) {
+                $attributeCodes[] = $attribute->getCode();
+            }
+        }
+
+        return $attributeCodes;
     }
 
     /**

@@ -36,6 +36,7 @@ define(
     ) {
         return BaseForm.extend({
             template: _.template(template),
+            scrollPosition: null,
 
             /**
              * {@inheritdoc}
@@ -61,6 +62,13 @@ define(
 
                 this.listenTo(this.getRoot(), 'pim_enrich:form:entity:bad_request', this.displayError.bind(this));
 
+                this.listenTo(this.getRoot(), 'pim_enrich:form:extension:render:before', () => {
+                    this.saveScroll();
+                });
+                this.listenTo(this.getRoot(), 'pim_enrich:form:extension:render:after', () => {
+                    this.setScroll();
+                });
+
                 this.onExtensions('save-buttons:register-button', function (button) {
                     const saveButtonsExtension = this.getExtension('save-buttons');
                     if (undefined === saveButtonsExtension) {
@@ -80,8 +88,6 @@ define(
                 if (!this.configured) {
                     return this;
                 }
-                const scrollPosition = this.$el.find('.edit-form').scrollTop();
-
                 this.getRoot().trigger('pim_enrich:form:render:before');
 
                 this.$el.html(this.template());
@@ -89,8 +95,26 @@ define(
                 this.renderExtensions();
 
                 this.getRoot().trigger('pim_enrich:form:render:after');
+            },
 
-                this.$el.find('.edit-form').scrollTop(scrollPosition);
+            /**
+             * Save the current scroll position
+             */
+            saveScroll: function () {
+                const containerElement = this.el.querySelector('.edit-form');
+                if (containerElement) {
+                    this.scrollPosition = containerElement.scrollTop;
+                }
+            },
+
+            /**
+             * Set the scroll position to its former value
+             */
+            setScroll: function () {
+                const containerElement = this.el.querySelector('.edit-form');
+                if (containerElement && null !== this.scrollPosition) {
+                    containerElement.scrollTop = this.scrollPosition;
+                }
             },
 
             /**

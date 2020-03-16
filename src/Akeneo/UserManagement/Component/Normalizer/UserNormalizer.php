@@ -7,6 +7,7 @@ use Akeneo\UserManagement\Component\Model\UserInterface;
 use Oro\Bundle\PimDataGridBundle\Repository\DatagridViewRepositoryInterface;
 use Oro\Bundle\SecurityBundle\SecurityFacade;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Serializer\Normalizer\CacheableSupportsMethodInterface;
 use Symfony\Component\Serializer\Normalizer\DateTimeNormalizer;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
@@ -17,7 +18,7 @@ use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
  * @copyright 2015 Akeneo SAS (http://www.akeneo.com)
  * @license   http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
-class UserNormalizer implements NormalizerInterface
+class UserNormalizer implements NormalizerInterface, CacheableSupportsMethodInterface
 {
     /** @var DateTimeNormalizer */
     private $dateTimeNormalizer;
@@ -103,9 +104,11 @@ class UserNormalizer implements NormalizerInterface
                 'originalFilename' => null,
             ] : $this->fileNormalizer->normalize($user->getAvatar()),
             'meta'                      => [
-                'id'    => $user->getId(),
-                'form'  => $this->getFormName($user),
-                'image' => [
+                'id'      => $user->getId(),
+                'created' => $user->getCreatedAt() ? $user->getCreatedAt()->getTimestamp() : null,
+                'updated' => $user->getUpdatedAt() ? $user->getUpdatedAt()->getTimestamp() : null,
+                'form'    => $this->getFormName($user),
+                'image'   => [
                     'filePath' => null === $user->getAvatar() ?
                         null :
                         $this->fileNormalizer->normalize($user->getAvatar())['filePath']
@@ -140,6 +143,11 @@ class UserNormalizer implements NormalizerInterface
     public function supportsNormalization($data, $format = null)
     {
         return $data instanceof UserInterface && in_array($format, $this->supportedFormats);
+    }
+
+    public function hasCacheableSupportsMethod(): bool
+    {
+        return true;
     }
 
     /**

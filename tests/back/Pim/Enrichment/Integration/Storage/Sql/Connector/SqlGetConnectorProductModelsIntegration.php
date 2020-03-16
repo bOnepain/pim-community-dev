@@ -116,15 +116,15 @@ class SqlGetConnectorProductModelsIntegration extends TestCase
                         ScalarValue::value('a_number_float', '12.5000'),
                         ScalarValue::scopableLocalizableValue(
                             'a_localized_and_scopable_text_area',
-                            'my pink tshirt',
-                            'ecommerce',
-                            'en_US'
+                            'mon tshirt rose',
+                            'tablet',
+                            'fr_FR'
                         ),
                         ScalarValue::scopableLocalizableValue(
                             'a_localized_and_scopable_text_area',
-                            'mon tshirt rose',
+                            'my pink tshirt',
                             'ecommerce',
-                            'fr_FR'
+                            'en_US'
                         ),
                     ]
                 )
@@ -168,15 +168,15 @@ class SqlGetConnectorProductModelsIntegration extends TestCase
                         ScalarValue::value('a_number_float', '12.5000'),
                         ScalarValue::scopableLocalizableValue(
                             'a_localized_and_scopable_text_area',
-                            'my pink tshirt',
-                            'ecommerce',
-                            'en_US'
+                            'mon tshirt rose',
+                            'tablet',
+                            'fr_FR'
                         ),
                         ScalarValue::scopableLocalizableValue(
                             'a_localized_and_scopable_text_area',
-                            'mon tshirt rose',
+                            'my pink tshirt',
                             'ecommerce',
-                            'fr_FR'
+                            'en_US'
                         ),
                         ScalarValue::value('a_text', 'Lorem ipsum dolor sit amet'),
                     ]
@@ -386,15 +386,15 @@ class SqlGetConnectorProductModelsIntegration extends TestCase
                     ScalarValue::value('a_number_float', '12.5000'),
                     ScalarValue::scopableLocalizableValue(
                         'a_localized_and_scopable_text_area',
-                        'my pink tshirt',
-                        'ecommerce',
-                        'en_US'
+                        'mon tshirt rose',
+                        'tablet',
+                        'fr_FR'
                     ),
                     ScalarValue::scopableLocalizableValue(
                         'a_localized_and_scopable_text_area',
-                        'mon tshirt rose',
+                        'my pink tshirt',
                         'ecommerce',
-                        'fr_FR'
+                        'en_US'
                     ),
                 ]
             )
@@ -410,8 +410,8 @@ class SqlGetConnectorProductModelsIntegration extends TestCase
      */
     public function it_returns_empty_associations_if_there_is_no_association_type(): void
     {
-        $this->get('database_connection')->executeQuery('DELETE FROM akeneo_pim.pim_catalog_association_type_translation');
-        $this->get('database_connection')->executeQuery('DELETE FROM akeneo_pim.pim_catalog_association_type');
+        $this->get('database_connection')->executeQuery('DELETE FROM pim_catalog_association_type_translation');
+        $this->get('database_connection')->executeQuery('DELETE FROM pim_catalog_association_type');
 
         $subProductModel = $this->getQuery()->fromProductModelCode('sub_pm_A', $this->getUserIdFromUsername('admin'));
 
@@ -463,7 +463,7 @@ class SqlGetConnectorProductModelsIntegration extends TestCase
                         [
                             'data' => 'mon tshirt rose',
                             'locale' => 'fr_FR',
-                            'scope' => 'ecommerce',
+                            'scope' => 'tablet',
                         ],
                     ],
                 ],

@@ -1,6 +1,8 @@
 An identifier attribute already exists.: Un attribut identifiant existe déjà.
 Attribute code may contain only letters, numbers and underscore: Le code d'un attribut ne doit contenir que des lettres, des chiffres et des traits de soulignement
 Attribute code may contain only letters (at least one), numbers and underscores: Le code d'un attribut peut contenir uniquement des lettres (au moins une), des chiffres et des traits de soulignement
+Attribute code may not contain line-feed characters: Le code d'attribut ne doit pas contenir de caractères de saut de ligne.
+Attribute group code may contain only letters, numbers and underscores: Le code du groupe d'attributs ne doit contenir que des lettres, chiffres et tirets bas
 This attribute type can't be used as a grid filter: Ce type d'attribut ne peut pas être utilisé comme filtre dans la grille
 This code is not available: Ce code n'est pas disponible
 This attribute type must be required: Ce type d'attribut doit être requis
@@ -15,7 +17,7 @@ This value should not be a decimal.: Cette valeur ne doit pas être un nombre d�
 'The file extension is not allowed (allowed extensions: %extensions%).': 'L''extension du fichier n''est pas autorisée (les extensions autorisées sont : %extensions%).'
 "The value %value% is already set on another product for the unique attribute %attribute%": La valeur %value% est déjà définie sur un autre produit pour l'attribut unique %attribute%
 The same identifier is already set on another product: Le même identifiant est déjà défini sur un autre produit
-regex.comma_or_semicolon.message: Ce champ ne doit pas contenir de virgule ou de point-virgule.
+regex.comma_or_semicolon_or_surrounding_space.message: Ce champ ne doit pas contenir de virgule ou de point-virgule ni débuter/finir par un espace.
 file.extensions.message: 'L''extension du fichier n''est pas autorisée (les extensions autorisées sont : %extensions%).'
 "This type of value expects the use of {{ decimal_separator }} to separate decimals.": Ce type de valeur attend {{ decimal_separator }} comme séparateur de décimales.
 "This type of value expects the use of dot (.) to separate decimals.": Ce type de valeur attend un point (.) comme séparateur de décimales.
@@ -40,6 +42,7 @@ pim_catalog:
     cannot_have_parent: 'Le modèle de produit "%product_model%" ne peut pas avoir de parent'
     attribute_does_not_belong_to_family: 'L''attribut "%attribute%" n''appartient pas à la famille "%family%"'
     variant_product_invalid_family: 'La famille du produit variant doit être la même que son parent'
+    php_int_max_reached: 'Le nombre maximum doit être inférieur à %php_int_max%.'
     not_null_family: La famille ne peut pas être vide car votre produit avec l'identifiant "%sku%" est un produit variant.
     variant_product_has_parent: 'Le produit variant "%variant_product%" doit avoir un parent'
     invalid_variant_product_parent: 'Le produit variant "%variant_product%" ne peut pas avoir le modèle de produit "%product_model%" comme parent, (ce modèle de produit ne peut avoir que d''autres modèles de produit comme enfants)'

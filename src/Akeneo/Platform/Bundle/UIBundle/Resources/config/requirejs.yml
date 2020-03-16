@@ -149,7 +149,6 @@ config:
           module: pim/base-fetcher
           options:
             urls:
-              list: pim_enrich_group_rest_index
               get: pim_enrich_group_rest_get
         sequential-edit:
           module: pim/base-fetcher
@@ -406,11 +405,6 @@ config:
           module: pim/controller/job-execution
         oro_config_configuration_system:
           module: pim/controller/system
-        pim_enrich_api_connection_index:
-          module: pim/controller/common/index
-          aclResourceId: pim_enrich_api_connection_manage
-          config:
-            entity: api-connection
         pim_enrich_catalog_volume_index:
           module: pim/controller/catalog-volume
         pim_user_security_logout:
@@ -899,6 +893,7 @@ config:
     pim/form/common/creation/job:                        pimui/js/form/common/creation/job
     pim/form/common/product/create-button:               pimui/js/form/common/product/create-button
     pim/form/common/section:                             pimui/js/form/common/section.ts
+    pim/form/user/login-details:                         pimui/js/form/user/login-details
 
     pim/menu/menu:                                       pimui/js/menu/menu
     pim/menu/tab:                                        pimui/js/menu/tab
@@ -1036,6 +1031,7 @@ config:
     pim/template/form/column-tabs-navigation:                 pimui/templates/form/column-tabs-navigation.html
     pim/template/form/subsection:                             pimui/templates/form/subsection.html
     pim/template/form/main-image:                             pimui/templates/form/main-image.html
+    pim/template/form/user/login-details:                     pimui/templates/form/user/login-details.html
 
     pim/template/form/common/fields/field:                    pimui/templates/form/common/fields/field.html
     pim/template/form/common/fields/boolean:                  pimui/templates/form/common/fields/boolean.html

@@ -3,7 +3,7 @@
 namespace Akeneo\Pim\Enrichment\Component\Product\Normalizer\Indexing\Value;
 
 use Akeneo\Pim\Enrichment\Component\Product\Model\WriteValueCollection;
-use Akeneo\Pim\Enrichment\Component\Product\Normalizer\Indexing\ProductAndProductModel;
+use Symfony\Component\Serializer\Normalizer\CacheableSupportsMethodInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 /**
@@ -15,16 +15,16 @@ use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
  * @copyright 2017 Akeneo SAS (http://www.akeneo.com)
  * @license   http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
-class ValueCollectionNormalizer implements NormalizerInterface
+class ValueCollectionNormalizer implements NormalizerInterface, CacheableSupportsMethodInterface
 {
     public const INDEXING_FORMAT_PRODUCT_AND_MODEL_INDEX = 'indexing_product_and_product_model';
 
     /** @var NormalizerInterface */
-    private $serializer;
+    private $normalizer;
 
-    public function __construct(NormalizerInterface $serializer)
+    public function __construct(NormalizerInterface $normalizer)
     {
-        $this->serializer = $serializer;
+        $this->normalizer = $normalizer;
     }
 
     /**
@@ -34,7 +34,7 @@ class ValueCollectionNormalizer implements NormalizerInterface
     {
         $normalizedValues = [];
         foreach ($values as $value) {
-            $normalizedValues[] = $this->serializer->normalize($value, $format, $context);
+            $normalizedValues[] = $this->normalizer->normalize($value, $format, $context);
         }
 
         $result = empty($normalizedValues) ? [] : array_replace_recursive(...$normalizedValues);
@@ -50,5 +50,10 @@ class ValueCollectionNormalizer implements NormalizerInterface
         return $data instanceof WriteValueCollection && (
                 $format === self::INDEXING_FORMAT_PRODUCT_AND_MODEL_INDEX
             );
+    }
+
+    public function hasCacheableSupportsMethod(): bool
+    {
+        return true;
     }
 }

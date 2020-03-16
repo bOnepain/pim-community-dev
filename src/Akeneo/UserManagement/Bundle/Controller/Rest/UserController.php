@@ -9,8 +9,10 @@ use Akeneo\Tool\Component\StorageUtils\Saver\SaverInterface;
 use Akeneo\Tool\Component\StorageUtils\Updater\ObjectUpdaterInterface;
 use Akeneo\UserManagement\Component\Event\UserEvent;
 use Akeneo\UserManagement\Component\Model\UserInterface;
+use Doctrine\Common\Persistence\ObjectManager;
 use Doctrine\Common\Persistence\ObjectRepository;
 use Oro\Bundle\SecurityBundle\Annotation\AclAncestor;
+use Oro\Bundle\SecurityBundle\SecurityFacade;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\GenericEvent;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -71,6 +73,9 @@ class UserController
     /** @var Session */
     private $session;
 
+    /** @var ObjectManager */
+    private $objectManager;
+
     /** @var NumberFactory */
     private $numberFactory;
 
@@ -79,6 +84,9 @@ class UserController
 
     /** @var TranslatorInterface */
     private $translator;
+
+    /** @var SecurityFacade */
+    private $securityFacade;
 
     public function __construct(
         TokenStorageInterface $tokenStorage,
@@ -92,9 +100,11 @@ class UserController
         UserPasswordEncoderInterface $encoder,
         EventDispatcherInterface $eventDispatcher,
         Session $session,
+        ObjectManager $objectManager,
         RemoverInterface $remover,
         NumberFactory $numberFactory,
-        TranslatorInterface $translator
+        TranslatorInterface $translator,
+        SecurityFacade $securityFacade
     ) {
         $this->tokenStorage = $tokenStorage;
         $this->normalizer = $normalizer;
@@ -107,9 +117,11 @@ class UserController
         $this->encoder = $encoder;
         $this->eventDispatcher = $eventDispatcher;
         $this->session = $session;
+        $this->objectManager = $objectManager;
         $this->remover = $remover;
         $this->numberFactory = $numberFactory;
         $this->translator = $translator;
+        $this->securityFacade = $securityFacade;
     }
 
     /**
@@ -138,6 +150,14 @@ class UserController
      */
     public function getAction(int $identifier): JsonResponse
     {
+        $token = $this->tokenStorage->getToken();
+        $currentUserIdentifier = null !== $token ? $token->getUser()->getId() : null;
+
+        if ($currentUserIdentifier !== $identifier &&
+            !$this->securityFacade->isGranted('pim_user_user_index')) {
+            throw new AccessDeniedHttpException();
+        }
+
         $user = $this->getUserOr404($identifier);
 
         return new JsonResponse($this->normalizer->normalize($user, 'internal_api'));
@@ -162,6 +182,13 @@ class UserController
 
         //code is useful to reach the route, cannot forget it in the query
         unset($data['code']);
+
+        if (!$this->securityFacade->isGranted('pim_user_role_edit')) {
+            unset($data['roles']);
+        }
+        if (!$this->securityFacade->isGranted('pim_user_group_edit')) {
+            unset($data['groups']);
+        }
 
         return $this->updateUser($user, $data);
     }
@@ -286,7 +313,7 @@ class UserController
     {
         $user = $this->repository->findOneBy(['id' => $identifier]);
 
-        if (null === $user) {
+        if (null === $user || true === $user->isApiUser()) {
             throw new NotFoundHttpException(
                 sprintf('Username with id "%s" not found', $identifier)
             );
@@ -303,7 +330,7 @@ class UserController
      */
     private function updateUser(UserInterface $user, array $data): JsonResponse
     {
-        $previousUserName = $data['username'];
+        $previousUserName = $user->getUsername();
         if ($this->isPasswordUpdating($data)) {
             $passwordViolations = $this->validatePassword($user, $data);
             if ($passwordViolations->count() === 0) {
@@ -333,6 +360,7 @@ class UserController
                     );
                 }
             }
+            $this->objectManager->refresh($user);
 
             return new JsonResponse($normalizedViolations, Response::HTTP_BAD_REQUEST);
         }
@@ -401,12 +429,10 @@ class UserController
             isset($data['new_password']) && strlen($data['new_password']) < 2
         ) {
             $violations[] = new ConstraintViolation(
-                $this->translator->trans('pim_user.user.fields_errors.new_password.minimum_length'),
-                '',
-                [],
-                '',
-                'new_password',
-                ''
+                $this->translator ?
+                    $this->translator->trans(
+                        'pim_user.user.fields_errors.new_password.minimum_length'
+                    ) : 'Password must contains at least 2 characters', '', [], '', 'new_password', ''
             );
         }
 

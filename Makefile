@@ -1,8 +1,8 @@
 DOCKER_COMPOSE = docker-compose
-YARN_EXEC = $(DOCKER_COMPOSE) run -u node --rm node yarn
+NODE_RUN = $(DOCKER_COMPOSE) run -u node --rm node
+YARN_RUN = $(NODE_RUN) yarn
 PHP_RUN = $(DOCKER_COMPOSE) run -u www-data --rm php php
 PHP_EXEC = $(DOCKER_COMPOSE) exec -u www-data fpm php
-IMAGE_TAG ?= master
 
 .DEFAULT_GOAL := help
 
@@ -20,9 +20,9 @@ include make-file/*.mk
 ##
 ## Front
 ##
-
-node_modules: package.json
-	$(YARN_EXEC) install --frozen-lockfile
+.PHONY: node_modules
+node_modules:
+	$(YARN_RUN) install --frozen-lockfile
 
 .PHONY: assets
 assets:
@@ -32,22 +32,22 @@ assets:
 .PHONY: css
 css:
 	$(DOCKER_COMPOSE) run -u www-data --rm php rm -rf public/css
-	$(YARN_EXEC) run less
+	$(YARN_RUN) run less
 
 .PHONY: javascript-prod
 javascript-prod:
 	$(DOCKER_COMPOSE) run -u www-data --rm php rm -rf public/dist
-	$(YARN_EXEC) run webpack
+	$(YARN_RUN) run webpack
 
 .PHONY: javascript-dev
 javascript-dev:
 	$(DOCKER_COMPOSE) run -u www-data --rm php rm -rf public/dist
-	$(YARN_EXEC) run webpack-dev
+	$(YARN_RUN) run webpack-dev
 
 .PHONY: javascript-test
 javascript-test:
 	$(DOCKER_COMPOSE) run -u www-data --rm php rm -rf public/dist
-	$(YARN_EXEC) run webpack-test
+	$(YARN_RUN) run webpack-test
 
 .PHONY: front
 front: assets css javascript-test javascript-dev
@@ -60,14 +60,17 @@ front: assets css javascript-test javascript-dev
 fix-cs-back:
 	$(PHP_RUN) vendor/bin/php-cs-fixer fix --config=.php_cs.php
 
+var/cache/dev:
+	APP_ENV=dev make cache
+
 .PHONY: cache
 cache:
-	rm -rf var/cache && $(PHP_RUN) bin/console cache:warmup
+	$(DOCKER_COMPOSE) run -u www-data --rm php rm -rf var/cache && $(PHP_RUN) bin/console cache:warmup
 
-composer.lock: composer.json
-	$(PHP_RUN) -d memory_limit=4G /usr/local/bin/composer update
-
-vendor: composer.lock
+.PHONY: vendor
+vendor:
+    # check if composer.json is out of sync with composer.lock
+	$(PHP_RUN) /usr/local/bin/composer validate --no-check-all
 	$(PHP_RUN) -d memory_limit=4G /usr/local/bin/composer install
 
 .PHONY: check-requirements
@@ -85,14 +88,25 @@ database:
 .PHONY: dependencies
 dependencies: vendor node_modules
 
+# Those targets ease the pim installation depending the Symfony environnement: behat, test, dev, prod.
+#
+# For instance :
+# If you need to debug a legacy behat please run `make pim-behat` before debugging
+# If you need to debug a phpunit please run `make pim-test` before debugging
+# If you want to use the PIM with the debug mode enabled please run `make pim-dev` to initialize the PIM
+#
+# Caution:
+# - Make sure your back and front dependencies are up to date (make dependencies).
+# - Make sure the docker php is built (make php-image-dev).
+
 .PHONY: pim-behat
 pim-behat:
 	APP_ENV=behat $(MAKE) up
 	APP_ENV=behat $(MAKE) cache
 	$(MAKE) assets
 	$(MAKE) css
-	$(MAKE) javascript-test
 	$(MAKE) javascript-dev
+	docker/wait_docker_up.sh
 	APP_ENV=behat $(MAKE) database
 	APP_ENV=behat $(PHP_RUN) bin/console pim:user:create --admin -n -- admin admin test@example.com John Doe en_US
 
@@ -100,6 +114,7 @@ pim-behat:
 pim-test:
 	APP_ENV=test $(MAKE) up
 	APP_ENV=test $(MAKE) cache
+	docker/wait_docker_up.sh
 	APP_ENV=test $(MAKE) database
 
 .PHONY: pim-dev
@@ -109,6 +124,7 @@ pim-dev:
 	$(MAKE) assets
 	$(MAKE) css
 	$(MAKE) javascript-dev
+	docker/wait_docker_up.sh
 	APP_ENV=dev O="--catalog src/Akeneo/Platform/Bundle/InstallerBundle/Resources/fixtures/icecat_demo_dev" $(MAKE) database
 
 .PHONY: pim-prod
@@ -118,22 +134,8 @@ pim-prod:
 	$(MAKE) assets
 	$(MAKE) css
 	$(MAKE) javascript-prod
+	docker/wait_docker_up.sh
 	APP_ENV=prod $(MAKE) database
-
-##
-## Docker
-##
-
-.PHONY: php-image-dev
-php-image-dev:
-	DOCKER_BUILDKIT=1 docker build --progress=plain --pull --tag akeneo/pim-dev/php:7.3 --target dev .
-
-.PHONY: php-image-prod
-php-image-prod:
-	DOCKER_BUILDKIT=1 docker build --progress=plain --pull --tag eu.gcr.io/akeneo-cloud:${IMAGE_TAG} --target prod .
-
-.PHONY: php-images
-php-images: php-image-dev php-image-prod
 
 .PHONY: up
 up:

@@ -21,7 +21,7 @@ use Akeneo\Pim\Enrichment\Component\Product\Normalizer\InternalApi\VariantNaviga
 use Akeneo\Pim\Enrichment\Component\Product\ProductModel\ImageAsLabel;
 use Akeneo\Pim\Enrichment\Component\Product\ProductModel\Query\CompleteVariantProducts;
 use Akeneo\Pim\Enrichment\Component\Product\ProductModel\Query\VariantProductRatioInterface;
-use Akeneo\Pim\Enrichment\Component\Product\ValuesFiller\EntityWithFamilyValuesFillerInterface;
+use Akeneo\Pim\Enrichment\Component\Product\ValuesFiller\FillMissingValuesInterface;
 use Akeneo\Pim\Structure\Component\Model\AssociationTypeInterface;
 use Akeneo\Pim\Structure\Component\Model\AttributeInterface;
 use Akeneo\Pim\Structure\Component\Model\FamilyInterface;
@@ -45,7 +45,7 @@ class ProductModelNormalizerSpec extends ObjectBehavior
         ConverterInterface $productValueConverter,
         FormProviderInterface $formProvider,
         LocaleRepositoryInterface $localeRepository,
-        EntityWithFamilyValuesFillerInterface $entityValuesFiller,
+        FillMissingValuesInterface $fillMissingProductModelValues,
         EntityWithFamilyVariantAttributesProvider $attributesProvider,
         VariantNavigationNormalizer $navigationNormalizer,
         VariantProductRatioInterface $variantProductRatioQuery,
@@ -67,7 +67,7 @@ class ProductModelNormalizerSpec extends ObjectBehavior
             $productValueConverter,
             $formProvider,
             $localeRepository,
-            $entityValuesFiller,
+            $fillMissingProductModelValues,
             $attributesProvider,
             $navigationNormalizer,
             $variantProductRatioQuery,
@@ -96,6 +96,7 @@ class ProductModelNormalizerSpec extends ObjectBehavior
         ConverterInterface $productValueConverter,
         FormProviderInterface $formProvider,
         LocaleRepositoryInterface $localeRepository,
+        FillMissingValuesInterface $fillMissingProductModelValues,
         EntityWithFamilyVariantAttributesProvider $attributesProvider,
         VariantNavigationNormalizer $navigationNormalizer,
         VariantProductRatioInterface $variantProductRatioQuery,
@@ -130,7 +131,7 @@ class ProductModelNormalizerSpec extends ObjectBehavior
             'categories'     => ['summer'],
             'values'         => [
                 'normalized_property' => [['data' => 'a nice normalized property', 'locale' => null, 'scope' => null]],
-                'number'              => [['data' => 12.5000, 'locale' => null, 'scope' => null]],
+                'number'              => [['data' => 12.5000000000111, 'locale' => null, 'scope' => null]],
                 'metric'              => [['data' => 12.5000, 'locale' => null, 'scope' => null]],
                 'prices'              => [['data' => 12.5, 'locale' => null, 'scope' => null]],
                 'date'                => [['data' => '2015-01-31', 'locale' => null, 'scope' => null]],
@@ -161,6 +162,7 @@ class ProductModelNormalizerSpec extends ObjectBehavior
 
         $userContext->getUserTimezone()->willReturn('Pacific/Kiritimati');
         $normalizer->normalize($productModel, 'standard', $options)->willReturn($productModelNormalized);
+        $fillMissingProductModelValues->fromStandardFormat($productModelNormalized)->willReturn($productModelNormalized);
         $localizedConverter->convertToLocalizedFormats($productModelNormalized['values'], $options)->willReturn($valuesLocalized);
 
         $valuesConverted = $valuesLocalized;
@@ -181,7 +183,7 @@ class ProductModelNormalizerSpec extends ObjectBehavior
         $productModel->getLabel('fr_FR', 'mobile')->willReturn('Tshirt bleu');
 
         $imageAsLabel->value($productModel)->willReturn($picture);
-        $imageNormalizer->normalize($picture, Argument::any())->willReturn($fileNormalized);
+        $imageNormalizer->normalize($picture, null, null)->willReturn($fileNormalized);
 
         $productValueConverter->convert($valuesLocalized)->willReturn($valuesConverted);
 
@@ -280,6 +282,7 @@ class ProductModelNormalizerSpec extends ObjectBehavior
         ConverterInterface $productValueConverter,
         FormProviderInterface $formProvider,
         LocaleRepositoryInterface $localeRepository,
+        FillMissingValuesInterface $fillMissingProductModelValues,
         EntityWithFamilyVariantAttributesProvider $attributesProvider,
         VariantNavigationNormalizer $navigationNormalizer,
         VariantProductRatioInterface $variantProductRatioQuery,
@@ -308,7 +311,7 @@ class ProductModelNormalizerSpec extends ObjectBehavior
             'categories'     => ['summer'],
             'values'         => [
                 'normalized_property' => [['data' => 'a nice normalized property', 'locale' => null, 'scope' => null]],
-                'number'              => [['data' => 12.5000, 'locale' => null, 'scope' => null]],
+                'number'              => [['data' => 12.5000000000111, 'locale' => null, 'scope' => null]],
                 'metric'              => [['data' => 12.5000, 'locale' => null, 'scope' => null]],
                 'prices'              => [['data' => 12.5, 'locale' => null, 'scope' => null]],
                 'date'                => [['data' => '2015-01-31', 'locale' => null, 'scope' => null]],
@@ -334,6 +337,7 @@ class ProductModelNormalizerSpec extends ObjectBehavior
 
         $userContext->getUserTimezone()->willReturn('UTC');
         $normalizer->normalize($productModel, 'standard', $options)->willReturn($productModelNormalized);
+        $fillMissingProductModelValues->fromStandardFormat($productModelNormalized)->willReturn($productModelNormalized);
         $localizedConverter->convertToLocalizedFormats($productModelNormalized['values'], $options)->willReturn($valuesLocalized);
 
         $valuesConverted = $valuesLocalized;
@@ -347,7 +351,7 @@ class ProductModelNormalizerSpec extends ObjectBehavior
         $productModel->getLabel('fr_FR', 'mobile')->willReturn('Tshirt bleu');
 
         $imageAsLabel->value($productModel)->willReturn(null);
-        $imageNormalizer->normalize(null, Argument::any())->willReturn(null);
+        $imageNormalizer->normalize(null, null, null)->willReturn(null);
 
         $productValueConverter->convert($valuesLocalized)->willReturn($valuesConverted);
 
@@ -435,6 +439,7 @@ class ProductModelNormalizerSpec extends ObjectBehavior
         ConverterInterface $productValueConverter,
         FormProviderInterface $formProvider,
         LocaleRepositoryInterface $localeRepository,
+        FillMissingValuesInterface $fillMissingProductModelValues,
         EntityWithFamilyVariantAttributesProvider $attributesProvider,
         VariantNavigationNormalizer $navigationNormalizer,
         VariantProductRatioInterface $variantProductRatioQuery,
@@ -464,7 +469,7 @@ class ProductModelNormalizerSpec extends ObjectBehavior
             'categories'     => ['summer'],
             'values'         => [
                 'normalized_property' => [['data' => 'a nice normalized property', 'locale' => null, 'scope' => null]],
-                'number'              => [['data' => 12.5000, 'locale' => null, 'scope' => null]],
+                'number'              => [['data' => 12.5000000000111, 'locale' => null, 'scope' => null]],
                 'metric'              => [['data' => 12.5000, 'locale' => null, 'scope' => null]],
                 'prices'              => [['data' => 12.5, 'locale' => null, 'scope' => null]],
                 'date'                => [['data' => '2015-01-31', 'locale' => null, 'scope' => null]],
@@ -495,6 +500,7 @@ class ProductModelNormalizerSpec extends ObjectBehavior
 
         $userContext->getUserTimezone()->willReturn('UTC');
         $normalizer->normalize($productModel, 'standard', $options)->willReturn($productModelNormalized);
+        $fillMissingProductModelValues->fromStandardFormat($productModelNormalized)->willReturn($productModelNormalized);
         $localizedConverter->convertToLocalizedFormats($productModelNormalized['values'], $options)->willReturn($valuesLocalized);
 
         $valuesConverted = $valuesLocalized;
@@ -515,7 +521,7 @@ class ProductModelNormalizerSpec extends ObjectBehavior
         $productModel->getLabel('fr_FR', 'mobile')->willReturn('Tshirt bleu');
 
         $imageAsLabel->value($productModel)->willReturn($picture);
-        $imageNormalizer->normalize($picture, Argument::any())->willReturn($fileNormalized);
+        $imageNormalizer->normalize($picture, null, null)->willReturn($fileNormalized);
 
         $productValueConverter->convert($valuesLocalized)->willReturn($valuesConverted);
 

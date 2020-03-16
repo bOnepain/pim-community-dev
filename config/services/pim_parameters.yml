@@ -3,24 +3,12 @@
 parameters:
     database_unix_socket: ~
 
-    mailer_transport:     smtp
-    mailer_host:          localhost
-    mailer_port:          25
-    mailer_encryption:    ~
-    mailer_user:          ~
-    mailer_password:      ~
-    mailer_from_address:  no-reply@example.com
+    mailer_url: '%env(MAILER_URL)%'
     mailer_from_name:     Akeneo Admin
 
     # WebSocket server config
     websocket_host:       "127.0.0.1"
     websocket_port:       8080
-
-    upload_dir:           '%kernel.project_dir%/var/uploads/product'
-    archive_dir:          '%kernel.project_dir%/var/archive'
-    catalog_storage_dir:  '%kernel.project_dir%/var/file_storage/catalog'
-    tmp_storage_dir:      '/tmp/pim/file_storage'
-    upload_tmp_dir:       '/tmp/pim/upload_tmp_dir'
 
     max_products_category_removal: 100
 

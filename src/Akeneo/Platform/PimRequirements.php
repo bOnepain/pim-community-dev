@@ -22,9 +22,10 @@ class PimRequirements
 {
     const REQUIRED_PHP_VERSION = '7.3.0';
     const REQUIRED_GD_VERSION = '2.0';
+    const REQUIRED_GHOSTSCRIPT_VERSION = '9.27';
     const REQUIRED_CURL_VERSION = '7.0';
     const REQUIRED_ICU_VERSION = '4.2';
-    const LOWEST_REQUIRED_MYSQL_VERSION = '8.0.16';
+    const LOWEST_REQUIRED_MYSQL_VERSION = '8.0.18';
     const GREATEST_REQUIRED_MYSQL_VERSION = '8.1.0';
 
     const REQUIRED_EXTENSIONS = [
@@ -38,19 +39,17 @@ class PimRequirements
         'xml',
         'zip',
         'exif',
-        'imagick'
+        'imagick',
+        'mbstring',
+        'openssl',
     ];
-
-    /** @var string[] */
-    private $directoriesToCheck;
 
     /** @var string */
     private $baseDir;
 
-    public function __construct(string $baseDir, array $directoriesToCheck = [])
+    public function __construct(string $baseDir)
     {
         $this->baseDir = $baseDir;
-        $this->directoriesToCheck = $directoriesToCheck;
     }
 
     /**
@@ -88,6 +87,21 @@ class PimRequirements
             null !== $gdVersion && version_compare($gdVersion, self::REQUIRED_GD_VERSION, '>='),
             'GD extension must be at least ' . self::REQUIRED_GD_VERSION,
             'Install and enable the <strong>GD</strong> extension at least ' . self::REQUIRED_GD_VERSION . ' version'
+        );
+
+        $isGhostScriptInstalled = !empty(shell_exec('which gs'));
+        $isGhostScriptVersionSupported = $this->isGhostScriptVersionSupported();
+        $requirements[] = new Requirement(
+            $isGhostScriptInstalled && $isGhostScriptVersionSupported,
+            'Ghostscript executable must be at least ' . self::REQUIRED_GHOSTSCRIPT_VERSION,
+            'Install the <strong>Ghostscript</strong> executable at least ' . self::REQUIRED_GHOSTSCRIPT_VERSION . ' version'
+        );
+
+        $isAspellInstalled = !empty(shell_exec('which aspell'));
+        $requirements[] = new Requirement(
+            $isAspellInstalled,
+            'Aspell executable must be available',
+            'Install the <strong>Aspell</strong> executable'
         );
 
         $requirements[] = new Requirement(
@@ -155,14 +169,6 @@ class PimRequirements
             null,
             true
         );
-
-        foreach ($this->directoriesToCheck as $directoryToCheck) {
-            $requirements[] = new Requirement(
-                $this->directoryIsWritableIfExists($directoryToCheck),
-                sprintf('%s directory must be writable if it exists', $directoryToCheck),
-                sprintf('Change the permissions of the "<strong>%s</strong>" directory', $directoryToCheck)
-            );
-        }
 
         return $requirements;
     }
@@ -248,21 +254,19 @@ class PimRequirements
         return (float) $val;
     }
 
-    /**
-     * This checks is only useful for PIM instances that use a local filesystem for storage.
-     * In that case, we have to check the directories are writable when the directory already exists.
-     * If the directories do not exist, no problem, FlySystem will create them when needed.
-     *
-     * @param string $directory
-     *
-     * @return bool
-     */
-    private function directoryIsWritableIfExists(string $directory): bool
+    private function isGhostScriptVersionSupported(): bool
     {
-        if (is_dir($directory)) {
-            return is_writable($directory);
+        $currentGhostScriptVersion = trim(shell_exec('gs --version'));
+        if (null === $currentGhostScriptVersion) {
+            return false;
         }
 
-        return true;
+        $isGhostScriptVersionSupported = version_compare(
+            $currentGhostScriptVersion,
+            self::REQUIRED_GHOSTSCRIPT_VERSION,
+            '>='
+        );
+
+        return $isGhostScriptVersionSupported;
     }
 }

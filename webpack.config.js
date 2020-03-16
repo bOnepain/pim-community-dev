@@ -160,8 +160,7 @@ const webpackConfig = {
       // Process the pim webpack files with babel
       {
         test: /\.js$/,
-        include: /(public\/bundles|webpack|spec)/,
-        exclude: /lib|node_modules/,
+        include: [/public\/bundles/, /webpack/, /spec/, /node_modules\/p\-queue/],
         use: [
           'thread-loader',
           {
@@ -174,6 +173,14 @@ const webpackConfig = {
         ],
       },
 
+      {
+        test: /\.(svg)$/,
+        loader: 'file-loader',
+        options: {
+          outputPath: 'assets'
+        },
+      },
+
       // Process the typescript loader files
       {
         test: /\.tsx?$/,
@@ -181,7 +188,7 @@ const webpackConfig = {
           {
             loader: 'ts-loader',
             options: {
-              configFile: path.resolve(__dirname, 'tsconfig.json'),
+              configFile: path.resolve(rootDir, 'tsconfig.json'),
               context: path.resolve(rootDir),
             },
           },
@@ -201,6 +208,12 @@ const webpackConfig = {
           path.resolve(__dirname, 'tests'),
           path.resolve(rootDir, 'src')
         ],
+      },
+
+      {
+        test: /\.css$/,
+        include: /node_modules/,
+        loaders: ['style-loader', 'css-loader'],
       },
     ],
   },

@@ -8,7 +8,9 @@ use Akeneo\Pim\Enrichment\Component\Product\Model\ProductInterface;
 use Akeneo\Test\Acceptance\Product\InMemoryProductRepository;
 use Akeneo\Test\Common\EntityWithValue\Builder;
 use Behat\Behat\Context\Context;
+use Behat\Gherkin\Node\TableNode;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Webmozart\Assert\Assert;
 
 /**
  * Use this context to check product validation rules. Create a product with specific values, valid the product
@@ -43,11 +45,29 @@ final class ProductValidation implements Context
     }
 
     /**
-     * @When another product is created with identifier :identifier
+     * @When /^a(?:nother)? product is created with identifier "([^"]*)"$/
      */
     public function aProductIsCreatedWithIdentifier(string $identifier): void
     {
         $this->updatedProduct = $this->productBuilder->withIdentifier($identifier)->build(false);
+    }
+
+    /**
+     * @When a product is created with values:
+     */
+    public function aProductIsCreatedWithValues(TableNode $table): void
+    {
+        $this->productBuilder->withIdentifier('foo');
+        foreach ($table as $row) {
+            $data = $row['data'];
+            if (preg_match('/,/', $data)) {
+                $data = explode(',', $row['data']);
+            }
+
+            $this->productBuilder->withValue($row['attribute'], $data, $row['locale'] ?? '', $row['scope'] ?? '');
+        }
+
+        $this->updatedProduct = $this->productBuilder->build(false);
     }
 
     /**
@@ -94,5 +114,14 @@ final class ProductValidation implements Context
         $this->updatedProduct = $this->productRepository->findOneByIdentifier('my_product');
 
         $this->theErrorIsRaised($errorMessage);
+    }
+
+    /**
+     * @Then no error is raised
+     */
+    public function noErrorIsRaised()
+    {
+        $violations = $this->productValidator->validate($this->updatedProduct);
+        Assert::count($violations, 0);
     }
 }

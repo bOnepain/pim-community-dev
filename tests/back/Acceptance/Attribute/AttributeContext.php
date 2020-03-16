@@ -36,7 +36,7 @@ class AttributeContext implements Context
     }
 
     /**
-     * @Given the following attribute:
+     * @Given /the following attributes?:/
      */
     public function theFollowingAttribute(TableNode $table)
     {
@@ -49,6 +49,10 @@ class AttributeContext implements Context
                 $this->attributeGroupRepository->save($group);
 
                 $attributeData['group'] = 'MANDATORY_ATTRIBUTE_GROUP_CODE';
+            }
+
+            if (isset($attributeData['available_locales'])) {
+                $attributeData['available_locales'] = array_filter(explode(',', $attributeData['available_locales']));
             }
 
             $attribute = $this->attributeBuilder->build($attributeData);

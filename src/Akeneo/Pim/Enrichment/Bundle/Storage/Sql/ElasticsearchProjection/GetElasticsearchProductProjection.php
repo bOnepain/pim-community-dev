@@ -8,11 +8,10 @@ use Akeneo\Pim\Enrichment\Bundle\Elasticsearch\GetAdditionalPropertiesForProduct
 use Akeneo\Pim\Enrichment\Bundle\Elasticsearch\GetElasticsearchProductProjectionInterface;
 use Akeneo\Pim\Enrichment\Bundle\Elasticsearch\Model\ElasticsearchProductProjection;
 use Akeneo\Pim\Enrichment\Component\Product\Exception\ObjectNotFoundException;
-use Akeneo\Pim\Enrichment\Component\Product\Factory\Read\ValueCollectionFactory;
+use Akeneo\Pim\Enrichment\Component\Product\Factory\ReadValueCollectionFactory;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Type;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
-use Webmozart\Assert\Assert;
 
 /**
  * @copyright 2019 Akeneo SAS (http://www.akeneo.com)
@@ -28,8 +27,8 @@ final class GetElasticsearchProductProjection implements GetElasticsearchProduct
     /** @var NormalizerInterface */
     private $valuesNormalizer;
 
-    /** @var ValueCollectionFactory */
-    private $valueCollectionFactory;
+    /** @var ReadValueCollectionFactory */
+    private $readValueCollectionFactory;
 
     /** @var GetAdditionalPropertiesForProductProjectionInterface[] */
     private $additionalDataProviders = [];
@@ -37,12 +36,12 @@ final class GetElasticsearchProductProjection implements GetElasticsearchProduct
     public function __construct(
         Connection $connection,
         NormalizerInterface $valuesNormalizer,
-        ValueCollectionFactory $valueCollectionFactory,
+        ReadValueCollectionFactory $readValueCollectionFactory,
         iterable $additionalDataProviders = []
     ) {
         $this->connection = $connection;
         $this->valuesNormalizer = $valuesNormalizer;
-        $this->valueCollectionFactory = $valueCollectionFactory;
+        $this->readValueCollectionFactory = $readValueCollectionFactory;
         $this->additionalDataProviders = $additionalDataProviders;
     }
 
@@ -62,23 +61,23 @@ final class GetElasticsearchProductProjection implements GetElasticsearchProduct
 
         $diffIdentifiers = array_diff($productIdentifiers, $rowIdentifiers);
         if (count($diffIdentifiers) > 0) {
-            throw new ObjectNotFoundException(sprintf('Product identifiers "%s" were not found.', implode(',', $rowIdentifiers)));
+            throw new ObjectNotFoundException(sprintf('Product identifiers "%s" were not found.', implode(',', $diffIdentifiers)));
         }
 
         $platform = $this->connection->getDatabasePlatform();
 
+        $rows = $this->createValueCollectionInBatchFromRows($rows);
+
         $results = [];
         foreach ($rows as $row) {
-            $rawValues = \json_decode($row['raw_values'], true);
+            $rawValues = $row['raw_values'];
 
             $productLabels = [];
             if (null !== $row['attribute_as_label_code'] && isset($rawValues[$row['attribute_as_label_code']])) {
                 $productLabels = $rawValues[$row['attribute_as_label_code']];
             }
 
-            // to optimize as batch
-            $valueCollection = $this->valueCollectionFactory->createFromStorageFormat($rawValues);
-            $values = $this->valuesNormalizer->normalize($valueCollection, self::INDEXING_FORMAT_PRODUCT_AND_MODEL_INDEX);
+            $values = $this->valuesNormalizer->normalize($row['values'], self::INDEXING_FORMAT_PRODUCT_AND_MODEL_INDEX);
 
             // use Type::DATETIME and not Type::DATETIME_IMMUTABLE as it's overridden in the PIM (UTCDateTimeType) to handle UTC correctly
             $results[$row['identifier']] = new ElasticsearchProductProjection(
@@ -243,7 +242,7 @@ WITH
             JSON_ARRAYAGG(attribute.code) as attribute_codes_at_variant_product_level
         FROM 
             (SELECT DISTINCT family_variant_id, product_lvl_in_attribute_set FROM product WHERE family_variant_id IS NOT NULL) family_variant
-            JOIN akeneo_pim.pim_catalog_family_variant_has_variant_attribute_sets family_variant_attribute_set ON family_variant_attribute_set.family_variant_id = family_variant.family_variant_id
+            JOIN pim_catalog_family_variant_has_variant_attribute_sets family_variant_attribute_set ON family_variant_attribute_set.family_variant_id = family_variant.family_variant_id
             JOIN pim_catalog_variant_attribute_set_has_attributes attribute_in_set ON attribute_in_set.variant_attribute_set_id = family_variant_attribute_set.variant_attribute_sets_id
             JOIN pim_catalog_family_variant_attribute_set attribute_set ON attribute_set.id = family_variant_attribute_set.variant_attribute_sets_id
             JOIN pim_catalog_attribute attribute ON attribute.id = attribute_in_set.attributes_id
@@ -338,5 +337,44 @@ SQL;
 
             return $row;
         }, $rows);
+    }
+
+    /**
+     * Create value collection for several products in batch to minimize IO and improve performance.
+     *
+     * @param [
+     *          [
+     *              'identifier' => 'foo',
+     *              'raw_values' => ['attribute' => ['channel' => ['locale' => 'data' ]]]
+     *          ]
+     *        ]
+     *
+     * @return [
+     *          'foo' => [
+     *              'identifier' => 'foo',
+     *              'raw_values' => ['attribute' => ['channel' => ['locale' => 'data' ]]]
+     *              'values' => ValueCollection(...)
+     *          ]
+     *        ]
+     */
+    private function createValueCollectionInBatchFromRows(array $rows): array
+    {
+        $rowsIndexedByProductIdentifier = [];
+        foreach ($rows as $row) {
+            $row['raw_values'] = \json_decode($row['raw_values'], true);
+            $rowsIndexedByProductIdentifier[$row['identifier']] = $row;
+        }
+
+        $rawValuesCollection = [];
+        foreach ($rowsIndexedByProductIdentifier as $identifier => $rowIndexedByProductIdentifier) {
+            $rawValuesCollection[$identifier] = $rowIndexedByProductIdentifier['raw_values'];
+        }
+
+        $valueCollections = $this->readValueCollectionFactory->createMultipleFromStorageFormat($rawValuesCollection);
+        foreach ($valueCollections as $identifier => $valueCollection) {
+            $rowsIndexedByProductIdentifier[$identifier]['values'] = $valueCollection;
+        }
+
+        return $rowsIndexedByProductIdentifier;
     }
 }

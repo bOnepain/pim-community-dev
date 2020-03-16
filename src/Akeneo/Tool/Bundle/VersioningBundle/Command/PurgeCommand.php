@@ -7,7 +7,6 @@ use InvalidArgumentException;
 use Monolog\Handler\StreamHandler;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -74,6 +73,13 @@ class PurgeCommand extends Command
                 null,
                 InputOption::VALUE_OPTIONAL,
                 'Purges the versions that are younger than the number of days'
+            )
+            ->addOption(
+                'batch-size',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                'Purges the versions by batch',
+                1000
             )
             ->addOption(
                 'force',
@@ -153,6 +159,9 @@ class PurgeCommand extends Command
             $moreThanDays = self::DEFAULT_MORE_THAN_DAYS;
         }
 
+        $purgeOptions = [];
+        $purgeOptions['batch_size'] = (int) $input->getOption('batch-size');
+
         $resourceName = $input->hasArgument('entity') ? $input->getArgument('entity') : null;
         $resourceNameLabel = '';
         if (null !== $resourceName) {
@@ -164,12 +173,9 @@ class PurgeCommand extends Command
         $purgeOptions['date_operator'] = null !== $lessThanDays ? '>' : '<';
         $operatorLabel = null !== $lessThanDays ? 'younger' : 'older';
 
-        $totalVersions = $this->versionPurger->getVersionsToPurgeCount($purgeOptions);
-
         $output->writeln(
             sprintf(
-                '<info>You are about to process %d versions %s%s than %d days.</info>',
-                $totalVersions,
+                '<info>You are about to process versions %s%s than %d days.</info>',
                 $resourceNameLabel,
                 $operatorLabel,
                 $purgeOptions['days_number']
@@ -191,19 +197,6 @@ class PurgeCommand extends Command
             }
         }
 
-        $progressBar = new ProgressBar($output, $totalVersions);
-        $this->eventSubscriber->setProgressBar($progressBar);
-
-        $purgeVersionsCount = $this->versionPurger->purge($purgeOptions);
-
-        $progressBar->finish();
-
-        $output->writeln('');
-        $output->writeln(
-            sprintf(
-                '<info>Successfully deleted %d versions.</info>',
-                $purgeVersionsCount
-            )
-        );
+        $this->versionPurger->purge($purgeOptions, $output);
     }
 }

@@ -57,7 +57,7 @@ class PartialUpdateProductEndToEnd extends AbstractProductTestCase
                 'a_date'   => [
                     ['data' => '2016-06-13T00:00:00+02:00', 'locale' => null, 'scope' => null],
                 ],
-                'a_simple_select'                    => [
+                'a_simple_select' => [
                     ['locale' => null, 'scope' => null, 'data' => 'optionB'],
                 ],
             ],
@@ -235,6 +235,38 @@ JSON;
         $response = $client->getResponse();
         $this->assertSame($expectedContent, json_decode($response->getContent(), true));
         $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+    }
+
+    public function testProductUpdateWithDuplicatedValues()
+    {
+        $client = $this->createAuthenticatedClient();
+
+        $data =
+            <<<JSON
+    {
+        "identifier": "complete",
+        "values": {
+            "a_simple_select": [
+                {"locale": null, "scope": null, "data": "optionB"},
+                {"locale": null, "scope": null, "data": "optionA"}
+            ]
+        }
+    }
+JSON;
+
+        $expectedContent = [
+            'code'    => 422,
+            'message' => 'You cannot update the same product value on the "a_simple_select" attribute twice, with the same scope and locale. Check the expected format on the API documentation.',
+            '_links' => [
+                'documentation' => ['href' => 'http://api.akeneo.com/api-reference.html#patch_products__code_'],
+            ],
+        ];
+
+        $client->request('PATCH', 'api/rest/v1/products/complete', [], [], [], $data);
+
+        $response = $client->getResponse();
+        $this->assertSame(Response::HTTP_UNPROCESSABLE_ENTITY, $response->getStatusCode());
+        $this->assertSame($expectedContent, json_decode($response->getContent(), true));
     }
 
     public function testProductPartialUpdateWithIdenticalIdentifiers()
@@ -1444,7 +1476,7 @@ JSON;
     {
         "identifier": "product_family",
         "family": ["familyA"]
-    }
+    } 
 JSON;
         $client->request('PATCH', 'api/rest/v1/products/product_family', [], [], [], $data);
 
@@ -1485,7 +1517,7 @@ JSON;
 
         $expectedContent = [
             'code'    => 422,
-            'message' => 'Property "a_text" expects a scalar as data, "array" given. Check the expected format on the API documentation.',
+            'message' => 'Property "a_text" expects a string as data, "array" given. Check the expected format on the API documentation.',
             '_links'  => [
                 'documentation' => [
                     'href' => "http://api.akeneo.com/api-reference.html#patch_products__code_"

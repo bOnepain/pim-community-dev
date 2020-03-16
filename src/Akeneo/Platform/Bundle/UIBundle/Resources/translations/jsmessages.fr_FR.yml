@@ -1,3 +1,4 @@
+#ORO messages
 "Yes, I Agree": "Oui, je suis d'accord"
 "Yes, do it": "Oui, j'en suis sûr(e)"
 "Ok, got it.": "OK, compris."
@@ -20,9 +21,11 @@ Second: Seconde
 Millisecond: Milliseconde
 Microsecond: Microseconde
 "Time Zone": "Fuseau horaire"
+#PIM messages
 Localized value: Valeur localisée
 Columns: Colonnes
 Datagrid Configuration: Configuration du tableau
+#Filters
 Action: Action
 Unit: Unité
 Currency: Devise
@@ -34,6 +37,7 @@ jstree:
     unclassified: Produits non classifiés
   no_tree: Pas d'arborescence disponible
   include_sub: Inc. les sous-catégories
+#Datetimepicker
 datetimepicker:
   days:
     Sunday: Dimanche
@@ -85,6 +89,7 @@ datetimepicker:
     Oct: Oct.
     Nov: Nov.
     Dec: Déc.
+#ORO
 oro_config:
   form:
     config:
@@ -111,6 +116,33 @@ pim_ui:
 "Your local changes will be lost. Are you sure you want to refresh the page?": "Vos modifications courantes seront perdues. Êtes-vous certain(e) de vouloir actualiser la page ?"
 "navigation.message.content.outdated": "Le contenu de la page {{ title }} est dépassé, veuillez <a href='#' data-action='page-refresh'>actualiser la page</a>"
 "Content of pinned page is outdated": "Le contenu de la page épinglée est dépassé"
+#Global structure of translation files
+#pim_bundle_name:
+#entity:
+#entity_name:
+#label: entity
+#uppercase_label: Entity
+#plural_label: Entities
+#flash:
+#update:
+#fail: Update failed
+#success: Entity Successfully updated
+#delete:
+#fail: Cannot delete this entity
+#success: Entity successfully removed
+#create:
+#fail: Can not create this entity
+#success: Entity successfully created
+#page_title:
+#index: "]-Inf, 1]1 entity|]1, Inf[{{ count }} entities"
+#property:
+#field_name: Field name
+#complex_field:
+#label: Field name
+#choose: Choose a field name
+#module:
+#module_name:
+#key: message
 pim_common:
   actions: Actions
   add: Ajouter
@@ -183,7 +215,7 @@ error:
   forbidden: Désolé, vous n'êtes pas autorisé(e) à accéder à cette page
 alert:
   attribute_option:
-    error_occurred_during_submission: Une erreur s'est produite lors de l'envoi d'un formulaire sur le serveur
+    error_occurred_during_submission: Une erreur s'est produite lors de l'envoi du formulaire sur le serveur
     save_before_edit_other: Veuillez enregistrer vos modifications sur les autres lignes avant de modifier celle-ci
   session_storage:
     not_available: Votre navigateur Internet ne semble pas être compatible avec sessionStorage. Contactez votre administrateur
@@ -206,18 +238,6 @@ pim_enrich.entity.fallback:
       leave: Êtes-vous sûr(e) de vouloir quitter cette page ?
       discard_changes: Vous perdrez les modifications effectuées sur {{ entity }} si vous quittez la page.
       discard_changes_title: Êtes-vous sûr(e) ?
-pim_enrich.entity.api_connection:
-  flash:
-    create:
-      success: Connexion API créée avec succès
-    delete:
-      success: La connexion API a été révoquée avec succès
-      fail: Impossible de révoquer cette connexion API
-  page_title:
-    index: "] -Inf, 1]{{ count }} connexion API|]1, Inf[{{ count }} connexions API"
-  module:
-    revoke:
-      confirm: Voulez-vous vraiment révoquer cette connexion API ?
 pim_enrich.entity.job_execution:
   page_title:
     index: "]-Inf, 1]{{ count }} opération|]1, Inf[{{ count }} opérations"
@@ -264,8 +284,6 @@ pim_title:
   pim_enrich_mass_edit_action_perform: Edition en masse | Effectuer
   pim_enrich_job_tracker_index: Traqueur de processus
   pim_enrich_job_tracker_show: Traqueur de processus | Voir la tâche
-  pim_enrich_api_connection_index: Connexions API
-  pim_enrich_api_connection_create: Connexions d'API | Création
   pim_enrich_mass_edit_action: Edition en masse
   pim_analytics_system_info_index: Informations système
 pim_menu:
@@ -299,7 +317,6 @@ pim_menu:
     user_role: Rôles
     info: Informations système
     job_tracker: Traqueur de processus
-    api_connection: Connexions API
     catalog_volume: Volumétrie du catalogue
   navigation:
     activity: Centre d'activité

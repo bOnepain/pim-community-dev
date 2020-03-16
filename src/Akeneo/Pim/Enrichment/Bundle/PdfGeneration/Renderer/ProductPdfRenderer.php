@@ -4,6 +4,8 @@ namespace Akeneo\Pim\Enrichment\Bundle\PdfGeneration\Renderer;
 
 use Akeneo\Pim\Enrichment\Bundle\PdfGeneration\Builder\PdfBuilderInterface;
 use Akeneo\Pim\Enrichment\Component\Product\Model\ProductInterface;
+use Akeneo\Pim\Enrichment\Component\Product\Value\OptionsValue;
+use Akeneo\Pim\Enrichment\Component\Product\Value\OptionValue;
 use Akeneo\Pim\Structure\Bundle\Doctrine\ORM\Repository\AttributeRepository;
 use Akeneo\Pim\Structure\Component\AttributeTypes;
 use Akeneo\Pim\Structure\Component\Model\AttributeInterface;
@@ -49,9 +51,6 @@ class ProductPdfRenderer implements RendererInterface
     /** @var string */
     protected $template;
 
-    /** @var string */
-    protected $uploadDirectory;
-
     /** @var string|null */
     protected $customFont;
 
@@ -66,7 +65,6 @@ class ProductPdfRenderer implements RendererInterface
         FilterManager $filterManager,
         IdentifiableObjectRepositoryInterface $attributeRepository,
         string $template,
-        string $uploadDirectory,
         IdentifiableObjectRepositoryInterface $attributeOptionRepository,
         ?string $customFont = null
     ) {
@@ -77,7 +75,6 @@ class ProductPdfRenderer implements RendererInterface
         $this->filterManager = $filterManager;
         $this->attributeRepository = $attributeRepository;
         $this->template = $template;
-        $this->uploadDirectory = $uploadDirectory;
         $this->attributeOptionRepository = $attributeOptionRepository;
         $this->customFont = $customFont;
         $this->attributeOptionRepository = $attributeOptionRepository;
@@ -202,22 +199,28 @@ class ProductPdfRenderer implements RendererInterface
             $scope = $attribute->isScopable() ? $scopeCode : null;
 
             if (null !== $attribute && AttributeTypes::OPTION_SIMPLE_SELECT === $attribute->getType()) {
-                $optionCode = $product->getValue($attributeCode, $locale, $scope)->getData();
-                $option = $this->attributeOptionRepository->findOneByIdentifier($attributeCode.'.'.$optionCode);
-                $option->setLocale($localeCode);
-                $translation = $option->getTranslation();
-                $options[$attributeCode] = null !== $translation->getValue() ? $translation->getValue() : sprintf('[%s]', $option->getCode());
-            }
-            if (null !== $attribute && AttributeTypes::OPTION_MULTI_SELECT === $attribute->getType()) {
-                $optionCodes = $product->getValue($attributeCode, $locale, $scope)->getData();
-                $labels = [];
-                foreach ($optionCodes as $optionCode) {
-                    $option = $this->attributeOptionRepository->findOneByIdentifier($attributeCode.'.'.$optionCode);
+                $optionValue = $product->getValue($attributeCode, $locale, $scope);
+                if ($optionValue instanceof OptionValue) {
+                    $optionCode = $optionValue->getData();
+                    $option = $this->attributeOptionRepository->findOneByIdentifier($attributeCode . '.' . $optionCode);
                     $option->setLocale($localeCode);
                     $translation = $option->getTranslation();
-                    $labels[] = null !== $translation->getValue() ? $translation->getValue() : sprintf('[%s]', $option->getCode());
+                    $options[$attributeCode] = null !== $translation->getValue() ? $translation->getValue() : sprintf('[%s]', $option->getCode());
                 }
-                $options[$attributeCode] = implode(', ', $labels);
+            }
+            if (null !== $attribute && AttributeTypes::OPTION_MULTI_SELECT === $attribute->getType()) {
+                $optionValue = $product->getValue($attributeCode, $locale, $scope);
+                if ($optionValue instanceof OptionsValue) {
+                    $optionCodes = $optionValue->getData();
+                    $labels = [];
+                    foreach ($optionCodes as $optionCode) {
+                        $option = $this->attributeOptionRepository->findOneByIdentifier($attributeCode.'.'.$optionCode);
+                        $option->setLocale($localeCode);
+                        $translation = $option->getTranslation();
+                        $labels[] = null !== $translation->getValue() ? $translation->getValue() : sprintf('[%s]', $option->getCode());
+                    }
+                    $options[$attributeCode] = implode(', ', $labels);
+                }
             }
         }
 

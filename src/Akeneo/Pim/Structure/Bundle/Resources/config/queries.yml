@@ -4,10 +4,25 @@ services:
         arguments:
             $connection: '@database_connection'
 
+    akeneo.pim.structure.query.get_existing_attribute_options_with_values:
+        class: Akeneo\Pim\Structure\Bundle\Query\PublicApi\AttributeOption\Sql\SqlGetExistingAttributeOptionsWithValues
+        arguments:
+            - '@database_connection'
+
+    akeneo.pim.structure.query.lru_cached_get_existing_attribute_options_with_values:
+        class: Akeneo\Pim\Structure\Bundle\Query\PublicApi\AttributeOption\Cache\LruCachedGetExistingAttributeOptionsWithValues
+        arguments:
+            - '@akeneo.pim.structure.query.get_existing_attribute_options_with_values'
+
     akeneo.pim.structure.query.sql_get_attributes:
         class: 'Akeneo\Pim\Structure\Bundle\Query\PublicApi\Attribute\Sql\SqlGetAttributes'
         arguments:
             $connection: '@database_connection'
+
+    akeneo.pim.structure.query.is_there_at_least_one_attribute_configured_with_measurement_family:
+        class: Akeneo\Pim\Structure\Bundle\Query\PublicApi\Attribute\Sql\IsThereAtLeastOneAttributeConfiguredWithMeasurementFamily
+        arguments:
+            - '@database_connection'
 
     akeneo.pim.structure.query.get_attributes:
         class: 'Akeneo\Pim\Structure\Bundle\Query\PublicApi\Attribute\Cache\LRUCachedGetAttributes'
@@ -28,3 +43,13 @@ services:
         class: 'Akeneo\Pim\Structure\Bundle\Query\PublicApi\Attribute\Sql\AttributeIsAFamilyVariantAxis'
         arguments:
             - '@doctrine.orm.entity_manager'
+
+    akeneo.pim.structure.query.find_family_variants_identifiers_by_attribute_axes:
+        class: 'Akeneo\Pim\Structure\Bundle\Storage\Sql\FamilyVariantsByAttributeAxes'
+        arguments:
+            - '@doctrine.orm.entity_manager'
+
+    akeneo.pim.structure.query.find_attribute_group_orders_equal_or_superior_to:
+        class: 'Akeneo\Pim\Structure\Bundle\Storage\Sql\SqlFindAttributeGroupOrdersEqualOrSuperiorTo'
+        arguments:
+            - '@database_connection'

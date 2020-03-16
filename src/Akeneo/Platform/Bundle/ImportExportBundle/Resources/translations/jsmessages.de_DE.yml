@@ -89,6 +89,7 @@ pim_import_export:
           file_path:
             title: Dateipfad
             help: Wo die generierte Datei im Dateisystem abgelegt wird
+            help_import: Das Verzeichnis der Datei, die für den Import verwendet werden soll
           delimiter:
             title: Trennzeichen
             help: Einzelnes Zeichen, das als Feld-Trennzeichen verwendet wird
@@ -142,6 +143,7 @@ pim_import_export:
         import: Import
         export: Export
         mass_edit: Mehrere bearbeiten
+        mass_edit_rule: Regeleinstellungen
         quick_export: Schnellexport
         compute_family_variant_structure_changes: Änderungen in der Struktur von Varianten der Produktfamilie berechnen
         compute_completeness_of_products_family: Vollständigkeit der Produktfamilie berechnen

@@ -29,6 +29,7 @@ class AkeneoPimEnrichmentExtension extends Extension
         $this->loadLocalizationConfiguration($container, $config);
 
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
+        $loader->load('connector/archivers.yml');
         $loader->load('connector/cleaners.yml');
         $loader->load('connector/processors.yml');
         $loader->load('connector/use_cases.yml');
@@ -37,7 +38,6 @@ class AkeneoPimEnrichmentExtension extends Extension
         $loader->load('builders.yml');
         $loader->load('comparators.yml');
         $loader->load('completeness.yml');
-        $loader->load('completeness_checkers.yml');
         $loader->load('completeness_queries.yml');
         $loader->load('completeness_mask_generators.yml');
         $loader->load('console.yml');
@@ -50,7 +50,7 @@ class AkeneoPimEnrichmentExtension extends Extension
         $loader->load('entity_with_family_variant.yml');
         $loader->load('event_subscribers.yml');
         $loader->load('factories.yml');
-        $loader->load('read_product_value_factories.yml');
+        $loader->load('product_value_factories.yml');
         $loader->load('family_variant.yml');
         $loader->load('filters.yml');
         $loader->load('job_constraints.yml');

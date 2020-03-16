@@ -2,6 +2,8 @@
 
 namespace Akeneo\Pim\Enrichment\Component\Product\Normalizer\Versioning\Product;
 
+use Symfony\Component\Serializer\Normalizer\CacheableSupportsMethodInterface;
+
 /**
  * Normalize a DateTime
  *
@@ -11,7 +13,7 @@ namespace Akeneo\Pim\Enrichment\Component\Product\Normalizer\Versioning\Product;
  *
  * @see       Pim\Bundle\TransformBundle\Normalizer\Flat\ProductNormalizer
  */
-class DateTimeNormalizer extends AbstractValueDataNormalizer
+class DateTimeNormalizer extends AbstractValueDataNormalizer implements CacheableSupportsMethodInterface
 {
     /** @var string[] */
     protected $supportedFormats = ['csv', 'flat'];
@@ -22,7 +24,7 @@ class DateTimeNormalizer extends AbstractValueDataNormalizer
     /**
      * @param string $format see http://www.php.net/date
      */
-    public function __construct($format = 'Y-m-d')
+    public function __construct($format = 'c')
     {
         $this->format = $format;
     }
@@ -33,6 +35,11 @@ class DateTimeNormalizer extends AbstractValueDataNormalizer
     public function supportsNormalization($data, $format = null)
     {
         return $data instanceof \DateTime && in_array($format, $this->supportedFormats);
+    }
+
+    public function hasCacheableSupportsMethod(): bool
+    {
+        return true;
     }
 
     /**

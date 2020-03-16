@@ -19,6 +19,7 @@ use Akeneo\Pim\Enrichment\Component\Product\ProductModel\Query\VariantProductRat
 use Akeneo\Pim\Structure\Component\AttributeTypes;
 use Akeneo\Pim\Structure\Component\Model\AttributeInterface;
 use Akeneo\Tool\Component\StorageUtils\Repository\IdentifiableObjectRepositoryInterface;
+use Symfony\Component\Serializer\Normalizer\CacheableSupportsMethodInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 /**
@@ -33,7 +34,7 @@ use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
  * @copyright 2017 Akeneo SAS (http://www.akeneo.com)
  * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  */
-class EntityWithFamilyVariantNormalizer implements NormalizerInterface
+class EntityWithFamilyVariantNormalizer implements NormalizerInterface, CacheableSupportsMethodInterface
 {
     /** @var string[] */
     private $supportedFormat = ['internal_api'];
@@ -127,7 +128,7 @@ class EntityWithFamilyVariantNormalizer implements NormalizerInterface
             'axes_values_labels' => $this->getAxesValuesLabelsForLocales($entity, $localeCodes),
             'labels'             => $labels,
             'order'              => $this->getOrder($entity),
-            'image'              => $this->normalizeImage($image, $this->catalogContext->getLocaleCode()),
+            'image'              => $this->normalizeImage($image, $this->catalogContext->getScopeCode(), $this->catalogContext->getLocaleCode()),
             'model_type'         => $entity instanceof ProductModelInterface ? 'product_model' : 'product',
             'completeness'       => $this->getCompletenessDependingOnEntity($entity)
         ];
@@ -141,15 +142,21 @@ class EntityWithFamilyVariantNormalizer implements NormalizerInterface
         return $data instanceof EntityWithFamilyVariantInterface && in_array($format, $this->supportedFormat);
     }
 
+    public function hasCacheableSupportsMethod(): bool
+    {
+        return true;
+    }
+
     /**
      * @param ValueInterface $data
      * @param string         $localeCode
+     * @param string         $channelCode
      *
      * @return array|null
      */
-    private function normalizeImage(?ValueInterface $data, ?string $localeCode = null): ?array
+    private function normalizeImage(?ValueInterface $data, ?string $channelCode = null, ?string $localeCode = null): ?array
     {
-        return $this->imageNormalizer->normalize($data, $localeCode);
+        return $this->imageNormalizer->normalize($data, $localeCode, $channelCode);
     }
 
     /**

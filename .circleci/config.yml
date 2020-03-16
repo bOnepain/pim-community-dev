@@ -9,13 +9,8 @@ jobs:
           name: Copy docker-compose.override.yml.dist
           command: cp .circleci/docker-compose.override.yml.dist docker-compose.override.yml
       - run:
-            name: Pull and build the latest Docker images
-            command: |
-                make php-image-dev
-                docker save -o php-pim-image.tar akeneo/pim-dev/php:7.3
-      - run:
           name: Setup tests results folder and log folder
-          command: mkdir -p var/tests/phpunit var/tests/behat var/tests/phpspec var/tests/csfixer var/logs var/tests/screenshots ~/.cache/yarn ~/.composer
+          command: mkdir -p var/tests/behat var/tests/phpspec var/tests/csfixer var/logs var/tests/screenshots ~/.cache/yarn ~/.composer
       - run:
           name: Change owner on project dir (default user = circleci (1001) and docker needs uid 1000)
           command: sudo chown -R 1000:1000 ../project
@@ -34,28 +29,26 @@ jobs:
               sudo chown -R 1000:1000 ~/.composer
               sudo chown -R 1000:1000 ~/.cache/yarn
       - run:
-            name: Install back dependencies
-            command: make vendor
+            name: Pull docker images
+            command: docker-compose pull elasticsearch mysql node php
       - run:
-            name: Install front dependencies
-            command: make node_modules
-      - run:
-            name: Check PIM requirements
+            name: Start mysql and elasticsearch
             command: |
                 C='mysql elasticsearch' make up
-                .circleci/wait_docker_up.sh
-                make check-requirements
+      - run:
+            name: Install back and front dependencies
+            command: make dependencies
       - run:
             name: Install asset
             command: make assets
       - run:
-            name: Build CSS
-            command: make css
-      - run:
             name: Build Javascript
+            command: make javascript-dev
+      - run:
+            name: Check PIM requirements
             command: |
-                make javascript-test
-                make javascript-dev
+                docker/wait_docker_up.sh
+                make check-requirements
       - run:
             name: Change owner on project dir after install
             command: sudo chmod -R 777 ../project
@@ -72,7 +65,7 @@ jobs:
           paths:
             - project
 
-  back_static_and_acceptance:
+  test_back_static_and_acceptance:
       machine:
           image: ubuntu-1604:201903-01
       steps:
@@ -82,36 +75,26 @@ jobs:
                 name: Change owner on project dir (default user = circleci (1001) and docker needs uid 1000)
                 command: sudo chown -R 1000:1000 ../project
           - run:
-                name: Load archived docker image
-                command: docker load -i php-pim-image.tar
-          - run:
-                name: Generate dev cache for Symfony's Phpstan extension
-                command: APP_ENV=dev make cache
-          - run:
-                name: PhpSpec
-                command: docker-compose run -u www-data --rm -T php vendor/bin/phpspec run --format=junit > var/tests/phpspec/specs.xml
-          - run:
-                name: Find non executed PhpSpec files
-                command: ./.circleci/find_non_executed_phpspec.sh
-          - run:
-                name: PhpCsFixer
-                command: docker-compose run --rm -T php vendor/bin/php-cs-fixer fix --diff --dry-run --config=.php_cs.php
-                when: always
-          - run:
-                name: PhpCoupling Detector
-                command: make coupling
-                when: always
-          - run:
-                name: PHPStan
-                command: docker-compose run --rm -T php vendor/bin/phpstan analyse src/Akeneo/Pim -l 1
-                when: always
-          - run:
                 name: Check Pullup
-                command: docker-compose run --rm -T php bin/check-pullup
+                command: make check-pullup
                 when: always
           - run:
-                name: Acceptance back
-                command: docker-compose run --rm -T php vendor/bin/behat --strict -p acceptance -vv
+                name: Check that all defined services are instantiable
+                command: make check-sf-services
+          - run:
+                name: Analyzes source code to flag programming errors, bugs, stylistic errors, and suspicious constructs
+                command: make lint-back
+          - run:
+                name: Code Coupling Detection
+                command: make coupling-back
+                when: always
+          - run:
+                name: Unit tests
+                command: make unit-back
+          - run:
+                name: Acceptance tests
+                command: make acceptance-back
+
                 when: always
           - store_test_results:
                 path: var/tests
@@ -120,7 +103,7 @@ jobs:
           - store_artifacts:
                 path: var/logs
 
-  back_phpunit:
+  test_back_phpunit:
       machine:
           image: ubuntu-1604:201903-01
       parallelism: 10
@@ -133,22 +116,17 @@ jobs:
           - run:
                 name: Start containers
                 command: |
-                    docker load -i php-pim-image.tar
                     APP_ENV=test C='fpm mysql elasticsearch object-storage' make up
-                    .circleci/wait_docker_up.sh
+                    docker/wait_docker_up.sh
           - run:
                 name: Install database
                 command: APP_ENV=test make database
           - run:
                 name: PHPunit Integration
-                command: |
-                    TESTFILES=$(docker-compose run --rm -T php php .circleci/find_phpunit.php --testsuite PIM_Integration_Test | circleci tests split --split-by=timings)
-                    .circleci/run_phpunit.sh . $TESTFILES
+                command: make integration-back
           - run:
                 name: PHPunit End to end
-                command: |
-                    TESTFILES=$(docker-compose run --rm -T php php .circleci/find_phpunit.php --testsuite End_to_End | circleci tests split --split-by=timings)
-                    .circleci/run_phpunit.sh . $TESTFILES
+                command: make end-to-end-back
           - store_test_results:
                 path: var/tests/phpunit
           - store_artifacts:
@@ -178,22 +156,14 @@ jobs:
       - run:
             name: Start containers
             command: |
-                docker load -i php-pim-image.tar
                 APP_ENV=behat C='fpm mysql elasticsearch httpd object-storage selenium' make up
-                .circleci/wait_docker_up.sh
+                docker/wait_docker_up.sh
       - run:
             name: Install database
             command: APP_ENV=behat make database
       - run:
-            name: Non critical Behat
-            command: |
-                TESTFILES=$(docker-compose run --rm -T php vendor/bin/behat --list-scenarios -p legacy -s $TESTSUITE | circleci tests split --split-by=timings)
-                .circleci/run_behat.sh $TESTSUITE $TESTFILES
-      - run:
-            name: Critical Behat
-            command: |
-                TESTFILES=$(docker-compose run --rm -T php vendor/bin/behat --list-scenarios -p legacy -s critical | circleci tests split --split-by=timings)
-                .circleci/run_behat.sh critical $TESTFILES
+            name: Behat legacy
+            command: make end-to-end-legacy SUITE=$TESTSUITE
       - run:
           name: Gather Junit test result files in the same directory to improve the render of failing tests
           command: |
@@ -211,30 +181,81 @@ jobs:
       - store_artifacts:
           path: var/logs
 
-  front_static_acceptance_and_integration:
+  test_front_static_acceptance_and_integration:
       machine:
           image: ubuntu-1604:201903-01
       steps:
         - attach_workspace:
             at: ~/
         - run:
-            name: Change owner on project dir (default user = circleci (1001) and docker needs uid 1000)
-            command: sudo chown -R 1000:1000 ../project
+            name: Create yarn cache folder
+            command: mkdir -p  ~/.cache/yarn
         - run:
-            name: Front linter
-            command: docker-compose run --rm node yarn run lint
+              name: Change owner on project dir (default user = circleci (1001) and docker needs uid 1000)
+              command: sudo chown -R 1000:1000 ../project ~/.cache/yarn
         - run:
-            name: Front unit tests
-            command: docker-compose run --rm node yarn run unit
-            when: always
+              name: Front linter
+              command: make lint-front
         - run:
-            name: Front acceptance tests
-            command: MAX_RANDOM_LATENCY_MS=100 docker-compose run --rm node yarn run acceptance ./tests/features
-            when: always
+              name: Front unit tests
+              command: make unit-front
         - run:
-            name: Front integration tests
-            command: docker-compose run --rm node yarn run integration
-            when: always
+              name: Build test environment for acceptance and integration tests
+              command: make javascript-test
+        - run:
+              name: Front acceptance tests
+              command: make acceptance-front
+        - run:
+              name: Front integration tests
+              command: make integration-front
+
+  test_back_missing_structure_migrations:
+      machine:
+          image: ubuntu-1604:201903-01
+      steps:
+        - attach_workspace:
+              at: ~/
+        - run:
+              name: Load php image
+              command: |
+                  APP_ENV=test C='mysql elasticsearch object-storage' make up
+                  docker/wait_docker_up.sh
+        - run:
+              name: Restore permissions on files
+              command: git checkout -- .
+        - run:
+              name: Change owner on project dir after restoring cache
+              command: sudo chown -R 1000:1000 ../project/var
+        - run:
+              name: Test missing database and index structure migrations
+              command: .circleci/detect_structure_changes.sh $CIRCLE_BRANCH
+
+  test_back_data_migrations:
+      machine:
+          image: ubuntu-1604:201903-01
+      steps:
+          - attach_workspace:
+                at: ~/
+          - run:
+                name: Change owner on project dir in order to archive the project into the workspace
+                command: sudo chown -R 1000:1000 ../project
+          - run:
+                name: Start containers
+                command: |
+                    APP_ENV=test C='fpm mysql elasticsearch object-storage' make up
+                    docker/wait_docker_up.sh
+          - run:
+                name: Install database
+                command: APP_ENV=test make database
+          - run:
+                name: PhpUnit Migration
+                command: make migration-back
+          - store_test_results:
+                path: var/tests/phpunit
+          - store_artifacts:
+                path: var/tests/phpunit
+          - store_artifacts:
+                path: var/logs
 
 workflows:
   version: 2
@@ -249,19 +270,29 @@ workflows:
           - build_dev:
                 requires:
                     - wait_for_user_approval
-          - back_static_and_acceptance:
+          - test_back_static_and_acceptance:
                 requires:
                     - build_dev
-          - front_static_acceptance_and_integration:
+          - test_front_static_acceptance_and_integration:
                 requires:
                     - build_dev
-          - back_phpunit:
+          - test_back_missing_structure_migrations:
                 requires:
-                    - back_static_and_acceptance
-                    - front_static_acceptance_and_integration
+                    - test_back_static_and_acceptance
+                    - test_front_static_acceptance_and_integration
+          - test_back_data_migrations:
+                requires:
+                    - test_back_static_and_acceptance
+                    - test_front_static_acceptance_and_integration
+          - test_back_phpunit:
+                requires:
+                    - test_back_static_and_acceptance
+                    - test_front_static_acceptance_and_integration
           - back_behat_legacy:
                 requires:
-                    - back_phpunit
+                    - test_back_data_migrations
+                    - test_back_missing_structure_migrations
+                    - test_back_phpunit
 
   nightly:
       triggers:
@@ -273,16 +304,18 @@ workflows:
                             - master
       jobs:
           - build_dev
-          - back_static_and_acceptance:
+          - test_back_static_and_acceptance:
                 requires:
                     - build_dev
-          - front_static_acceptance_and_integration:
+          - test_front_static_acceptance_and_integration:
                 requires:
                     - build_dev
-          - back_phpunit:
+          - test_back_phpunit:
                 requires:
-                    - back_static_and_acceptance
-                    - front_static_acceptance_and_integration
+                    - build_dev
+          - test_back_data_migrations:
+                requires:
+                    - build_dev
           - back_behat_legacy:
                 requires:
-                    - back_phpunit
+                    - build_dev

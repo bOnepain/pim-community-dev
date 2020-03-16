@@ -610,6 +610,97 @@ class DataGridContext extends PimContext implements PageObjectAware
     }
 
     /**
+     * @param TableNode $table
+     *
+     * @Then /^I filter with the following filters:$/
+     *
+     * @return Then[]
+     */
+    public function iFilterWithTheFollowingFilters(TableNode $table)
+    {
+        $this->spin(
+            function () {
+                $loadingWrapper = $this->getDatagrid()->getElement('Grid container')->find('css', '.loading-mask');
+                $filterBox = $this->getDatagrid()->getElement('Body')->find('css', '.filter-box, .filter-wrapper');
+                $manageFilters = $this->getDatagrid()->getElement('Manage filters');
+
+                return
+                    (null === $loadingWrapper || !$loadingWrapper->isVisible())
+                    && null !== $filterBox
+                    && null !== $manageFilters
+                ;
+            }, 'Loading mask is still visible');
+
+        $this->spin(
+            function () {
+                $filterList = $this->getDatagrid()->getElement('Body')->find('css', '.AknFilterBox-addFilterButton');
+                if (null === $filterList) {
+                    return false;
+                }
+                $filterList->click();
+
+                return true;
+            },
+            'Could not open Manage filters'
+        );
+
+        $manageFilters = $this->getDatagrid()->getElement('Manage filters');
+        foreach ($table->getHash() as $item) {
+            ['filter' => $filterName, 'operator' => $operator, 'value' => $value] = $item;
+
+            $this->spin(
+                function () use ($filterName, $manageFilters) {
+                    $searchField = $manageFilters->find('css', 'input[type="search"]');
+                    if (null !== $searchField) {
+                        $searchField->setValue($filterName);
+
+                        return true;
+                    }
+
+                    return false;
+                },
+                'Impossible to search in filters.'
+            );
+
+            $this->spin(
+                function () use ($filterName, $manageFilters) {
+                    $filterElement = $manageFilters->find('css', sprintf('input[value="%s"]', $filterName));
+
+                    if (null !== $filterElement && $filterElement->isVisible()) {
+                        $filterElement->click();
+
+                        return true;
+                    }
+
+                    return false;
+                },
+                sprintf('Impossible to activate filter "%s"', $filterName)
+            );
+        }
+        $manageFilters->find('css', '.close')->click();
+
+        foreach ($table->getHash() as $item) {
+            ['filter' => $filterName, 'operator' => $operator, 'value' => $value] = $item;
+
+            $this->spin(function () use ($filterName, $operator, $value) {
+                $this->getDatagrid()->filterBy($filterName, $operator, $value);
+
+                return true;
+            }, sprintf('Can\'t filter by %s with operator %s and value %s', $filterName, $operator, $value));
+        }
+
+        $this->spin(
+            function () {
+                $loadingWrapper = $this->getDatagrid()->getElement('Grid container')->find('css', '.loading-mask');
+
+                return (null === $loadingWrapper || !$loadingWrapper->isVisible());
+            }, 'Loading mask is still visible');
+
+
+        return true;
+    }
+
+    /**
      * @param string $columnName
      * @param string $order
      *
@@ -694,6 +785,7 @@ class DataGridContext extends PimContext implements PageObjectAware
      * @Then /^I should not see (?:(?:entit|currenc)(?:y|ies)) (.*)$/
      * @Then /^I should not see group(?: type)?s? (.*)$/
      * @Then /^I should not see association (?:types? )?(.*)$/
+     * @Then /^I should not see users? (.*)$/
      * @Then /^I should not see famil(?:y|ies) (.*)$/
      * @Then /^I should not see client(?:|s) (.*)$/
      */
@@ -1159,18 +1251,6 @@ class DataGridContext extends PimContext implements PageObjectAware
                 )
             );
         }
-    }
-
-    /**
-      * @param string $typeLabel
-      *
-      * @Then /^I should see "([^"]*)" in the display dropdown$/
-      *
-      * @throws ExpectationException
-      */
-    public function iShouldSeeInTheDisplayDropdown($typeLabel)
-    {
-        return $this->getCurrentPage()->getDropdownButton($typeLabel);
     }
 
     /**

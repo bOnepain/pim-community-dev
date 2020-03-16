@@ -16,10 +16,11 @@ use Akeneo\Pim\Enrichment\Component\Product\Model\ProductModelInterface;
 use Akeneo\Pim\Enrichment\Component\Product\Model\ValueInterface;
 use Akeneo\Pim\Enrichment\Component\Product\ProductModel\ImageAsLabel;
 use Akeneo\Pim\Enrichment\Component\Product\ProductModel\Query\VariantProductRatioInterface;
-use Akeneo\Pim\Enrichment\Component\Product\ValuesFiller\EntityWithFamilyValuesFillerInterface;
+use Akeneo\Pim\Enrichment\Component\Product\ValuesFiller\FillMissingValuesInterface;
 use Akeneo\Platform\Bundle\UIBundle\Provider\Form\FormProviderInterface;
 use Akeneo\Tool\Bundle\VersioningBundle\Manager\VersionManager;
 use Akeneo\UserManagement\Bundle\Context\UserContext;
+use Symfony\Component\Serializer\Normalizer\CacheableSupportsMethodInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 /**
@@ -27,7 +28,7 @@ use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
  * @copyright 2017 Akeneo SAS (http://www.akeneo.com)
  * @license   http://opensource.org/licenses/osl-3.0.php Open Software License (OSL 3.0)
  */
-class ProductModelNormalizer implements NormalizerInterface
+class ProductModelNormalizer implements NormalizerInterface, CacheableSupportsMethodInterface
 {
     /** @var string[] */
     private $supportedFormat = ['internal_api'];
@@ -56,8 +57,8 @@ class ProductModelNormalizer implements NormalizerInterface
     /** @var LocaleRepositoryInterface */
     private $localeRepository;
 
-    /** @var EntityWithFamilyValuesFillerInterface */
-    private $entityValuesFiller;
+    /** @var FillMissingValuesInterface */
+    private $fillMissingProductModelValues;
 
     /** @var EntityWithFamilyVariantAttributesProvider */
     private $attributesProvider;
@@ -101,7 +102,7 @@ class ProductModelNormalizer implements NormalizerInterface
         ConverterInterface $productValueConverter,
         FormProviderInterface $formProvider,
         LocaleRepositoryInterface $localeRepository,
-        EntityWithFamilyValuesFillerInterface $entityValuesFiller,
+        FillMissingValuesInterface $fillMissingProductModelValues,
         EntityWithFamilyVariantAttributesProvider $attributesProvider,
         VariantNavigationNormalizer $navigationNormalizer,
         VariantProductRatioInterface $variantProductRatioQuery,
@@ -122,7 +123,7 @@ class ProductModelNormalizer implements NormalizerInterface
         $this->productValueConverter = $productValueConverter;
         $this->formProvider = $formProvider;
         $this->localeRepository = $localeRepository;
-        $this->entityValuesFiller = $entityValuesFiller;
+        $this->fillMissingProductModelValues = $fillMissingProductModelValues;
         $this->attributesProvider = $attributesProvider;
         $this->navigationNormalizer = $navigationNormalizer;
         $this->variantProductRatioQuery = $variantProductRatioQuery;
@@ -144,9 +145,8 @@ class ProductModelNormalizer implements NormalizerInterface
     public function normalize($productModel, $format = null, array $context = []): array
     {
         $this->missingAssociationAdder->addMissingAssociations($productModel);
-        $this->entityValuesFiller->fillMissingValues($productModel);
-
         $normalizedProductModel = $this->normalizer->normalize($productModel, 'standard', $context);
+        $normalizedProductModel = $this->fillMissingProductModelValues->fromStandardFormat($normalizedProductModel);
 
         $normalizedProductModel['values'] = $this->localizedConverter->convertToLocalizedFormats(
             $normalizedProductModel['values'],
@@ -205,7 +205,7 @@ class ProductModelNormalizer implements NormalizerInterface
                 'model_type'                => 'product_model',
                 'attributes_for_this_level' => $levelAttributes,
                 'attributes_axes'           => $axesAttributes,
-                'image'                     => $this->normalizeImage($closestImage, $this->catalogContext->getLocaleCode()),
+                'image'                     => $this->normalizeImage($closestImage, $this->catalogContext->getScopeCode(), $this->catalogContext->getLocaleCode()),
                 'variant_navigation'        => $this->navigationNormalizer->normalize($productModel, $format, $context),
                 'ascendant_category_ids'    => $this->ascendantCategoriesQuery->getCategoryIds($productModel),
                 'required_missing_attributes' => $requiredMissingAttributes,
@@ -221,6 +221,11 @@ class ProductModelNormalizer implements NormalizerInterface
     public function supportsNormalization($data, $format = null)
     {
         return $data instanceof ProductModelInterface && in_array($format, $this->supportedFormat);
+    }
+
+    public function hasCacheableSupportsMethod(): bool
+    {
+        return true;
     }
 
     /**
@@ -266,11 +271,12 @@ class ProductModelNormalizer implements NormalizerInterface
     /**
      * @param ValueInterface|null $data
      * @param string              $localeCode
+     * @param string              $channelCode
      *
      * @return array|null
      */
-    private function normalizeImage(?ValueInterface $data, ?string $localeCode = null): ?array
+    private function normalizeImage(?ValueInterface $data, ?string $channelCode, ?string $localeCode = null): ?array
     {
-        return $this->imageNormalizer->normalize($data, $localeCode);
+        return $this->imageNormalizer->normalize($data, $localeCode, $channelCode);
     }
 }

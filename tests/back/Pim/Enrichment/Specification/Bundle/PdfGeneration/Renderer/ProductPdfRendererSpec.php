@@ -46,7 +46,6 @@ class ProductPdfRendererSpec extends ObjectBehavior
             $filterManager,
             $attributeRepository,
             self::TEMPLATE_NAME,
-            '/tmp/',
             $attributeOptionRepository,
             null
         );
@@ -209,6 +208,56 @@ class ProductPdfRendererSpec extends ObjectBehavior
                 'imagePaths' => [],
                 'customFont' => null,
                 'optionLabels' => ['colors' => 'Blue, Red'],
+                'filter' => 'pdf_thumbnail',
+                'renderingDate' => $renderingDate,
+            ]
+        )->shouldBeCalled();
+
+        $this->render(
+            $product,
+            'pdf',
+            ['locale' => 'en_US', 'scope' => 'ecommerce', 'renderingDate' => $renderingDate]
+        );
+    }
+
+    function it_renders_a_simple_select_without_any_option_for_a_given_locale(
+        EngineInterface $templating,
+        IdentifiableObjectRepositoryInterface $attributeRepository,
+        IdentifiableObjectRepositoryInterface $attributeOptionRepository
+    ) {
+        $colors = new Attribute();
+        $colors->setCode('colors');
+        $colors->setType(AttributeTypes::OPTION_SIMPLE_SELECT);
+        $colors->setLocale('en_US');
+        $colors->setLabel('Colors');
+        $group = new AttributeGroup();
+        $group->setLocale('en_US');
+        $group->setLabel('Marketing');
+        $colors->setGroup($group);
+        $colors->setLocalizable(true);
+        $colors->setScopable(true);
+        $attributeRepository->findOneByIdentifier('colors')->willReturn($colors);
+
+        $product = new Product();
+        $product->setValues(
+            new WriteValueCollection(
+                [
+                    OptionsValue::scopableLocalizableValue('colors', [], 'ecommerce', 'fr_FR'),
+                ]
+            )
+        );
+
+        $renderingDate = new \DateTime();
+        $templating->render(
+            self::TEMPLATE_NAME,
+            [
+                'product' => $product,
+                'locale' => 'en_US',
+                'scope' => 'ecommerce',
+                'groupedAttributes' => ['Marketing' => ['colors' => $colors]],
+                'imagePaths' => [],
+                'customFont' => null,
+                'optionLabels' => [],
                 'filter' => 'pdf_thumbnail',
                 'renderingDate' => $renderingDate,
             ]

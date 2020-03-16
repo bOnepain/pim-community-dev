@@ -159,8 +159,6 @@ pim_enrich:
             remove: Remove associations to a product
         job_tracker:
             index: View process tracker
-        api_connection:
-            manage: Manage the API connections
 
     acl_group:
         association_type: Association types
@@ -211,6 +209,7 @@ flash:
         removed: Item was deleted
     attribute:
         identifier_not_removable: Identifier attribute can not be removed
+        used_as_conversion_unit:  This attribute can not be removed because it is used as conversion unit in the channel(s) %channelCodes%.
     category:
         removed: Category successfully removed
     tree:

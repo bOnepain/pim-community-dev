@@ -72,12 +72,15 @@ Akeneo\Pim\Structure\Component\Model\Attribute:
             - NotBlank: ~
             - Regex:
                 pattern: /^[a-zA-Z0-9_]+$/
-                message: Attribute code may contain only letters, numbers and underscores
+                message: Attribute code may contain only letters, numbers and underscore
             - Length:
                 max: 255
             - Regex:
-                pattern: /^(?!(id|associationTypes|categories|categoryId|completeness|enabled|(?i)\bfamily\b|groups|associations|products|scope|treeId|values|category|parent|label|(.)*_(products|groups)|entity_type|attributes)$)/
+                pattern: /^(?!(id|iD|Id|ID|associationTypes|categories|categoryId|completeness|enabled|(?i)\bfamily\b|groups|associations|products|scope|treeId|values|category|parent|label|(.)*_(products|groups)|entity_type|attributes)$)/
                 message: This code is not available
+            - Regex:
+                pattern: /^[^\n]+$/D
+                message: Attribute code may not contain line-feed characters
         localizable:
             - Type: bool
             - NotNull: ~
@@ -463,7 +466,7 @@ Akeneo\Pim\Structure\Component\Model\AttributeOption:
                 pattern: /^[a-zA-Z0-9_]+$/
                 message: Option code may contain only letters, numbers and underscores
             - Length:
-                max: 255
+                max: 100
         attribute:
             - NotBlank: ~
             - Valid: ~

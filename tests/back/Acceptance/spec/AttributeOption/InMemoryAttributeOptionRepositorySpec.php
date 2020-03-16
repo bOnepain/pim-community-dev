@@ -47,6 +47,7 @@ class InMemoryAttributeOptionRepositorySpec extends ObjectBehavior
         );
 
         $this->findOneByIdentifier('hair_color.brown')->shouldReturn($brownHairColor);
+        $this->findOneByIdentifier('Eye_Color.Brown')->shouldReturn($brownEyeColor);
     }
 
     function it_does_not_find_an_attribute_option_by_identifier()
@@ -134,6 +135,26 @@ class InMemoryAttributeOptionRepositorySpec extends ObjectBehavior
         $this
             ->findCodesByIdentifiers('eye_color', ['blue', 'brown'])
             ->shouldReturn([['code' => 'blue'], ['code' => 'brown']]);
+    }
+
+    function it_returns_all_attribute_options()
+    {
+        $eyeColor = (new Attribute())->setCode('eye_color');
+        $blueEyeColor = $this->createAttributeOption('blue', $eyeColor);
+        $brownEyeColor = $this->createAttributeOption('brown', $eyeColor);
+
+        $this->beConstructedWith(
+            [
+                $blueEyeColor,
+                $brownEyeColor,
+            ]
+        );
+
+        $products = $this->findAll();
+        $products->shouldBeArray();
+        $products->shouldHaveCount(2);
+        $products[0]->shouldBe($blueEyeColor);
+        $products[1]->shouldBe($brownEyeColor);
     }
 
     private function createAttributeOption(string $code, AttributeInterface $attribute): AttributeOptionInterface

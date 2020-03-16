@@ -2,7 +2,7 @@ version: '3.4'
 
 services:
   php:
-    image: 'akeneo/pim-dev/php:7.3'
+    image: 'akeneo/pim-php-dev:4.0'
     environment:
       APP_ENV: '${APP_ENV:-prod}'
       COMPOSER_HOME: '/var/www/.composer'
@@ -20,7 +20,7 @@ services:
       - 'pim'
 
   fpm:
-    image: 'akeneo/pim-dev/php:7.3'
+    image: 'akeneo/pim-php-dev:4.0'
     environment:
       APP_ENV: '${APP_ENV:-prod}'
       BEHAT_TMPDIR: '/srv/pim/var/cache/tmp'
@@ -40,20 +40,21 @@ services:
   node:
     image: 'akeneo/node:10'
     environment:
-      YARN_CACHE_FOLDER: '/var/www/.yarn'
+      YARN_CACHE_FOLDER: '/home/node/.yarn'
     volumes:
       - './:/srv/pim'
-      - '${HOST_YARN_CACHE_FOLDER:-~/.cache/yarn}:/var/www/.yarn'
+      - '${HOST_YARN_CACHE_FOLDER:-~/.cache/yarn}:/home/node/.yarn'
     working_dir: '/srv/pim'
     networks:
       - 'pim'
 
   selenium:
-    image: 'selenium/standalone-firefox-debug:2.53.1-beryllium'
+    image: 'selenium/standalone-chrome-debug:3'
     volumes:
       - './:/srv/pim:ro'
+      - '/dev/shm:/dev/shm'
     ports:
-      - '${DOCKER_PORT_HTTP:-5910}:5900'
+      - '${DOCKER_PORT_SELENIUM:-5910}:5900'
     networks:
       - 'pim'
 
@@ -73,7 +74,7 @@ services:
       - 'pim'
 
   mysql:
-    image: 'mysql:8.0.16'
+    image: 'mysql:8.0.18'
     command: '--default-authentication-plugin=mysql_native_password'
     environment:
       MYSQL_ROOT_PASSWORD: 'root'
@@ -86,7 +87,7 @@ services:
       - 'pim'
 
   elasticsearch:
-    image: 'docker.elastic.co/elasticsearch/elasticsearch-oss:7.3.1'
+    image: 'docker.elastic.co/elasticsearch/elasticsearch-oss:7.5.1'
     environment:
       ES_JAVA_OPTS: '${ES_JAVA_OPTS:--Xms512m -Xmx512m}'
       discovery.type: 'single-node'

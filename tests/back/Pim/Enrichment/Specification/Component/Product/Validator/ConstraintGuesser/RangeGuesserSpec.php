@@ -4,8 +4,10 @@ namespace Specification\Akeneo\Pim\Enrichment\Component\Product\Validator\Constr
 
 use Akeneo\Pim\Enrichment\Component\Product\Validator\ConstraintGuesserInterface;
 use Akeneo\Pim\Enrichment\Component\Product\Validator\Constraints\Range;
-use PhpSpec\ObjectBehavior;
+use Akeneo\Pim\Structure\Component\AttributeTypes;
+use Akeneo\Pim\Structure\Component\Model\Attribute;
 use Akeneo\Pim\Structure\Component\Model\AttributeInterface;
+use PhpSpec\ObjectBehavior;
 
 class RangeGuesserSpec extends ObjectBehavior
 {

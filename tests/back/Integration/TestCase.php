@@ -7,7 +7,6 @@ namespace Akeneo\Test\Integration;
 use Akeneo\Pim\Enrichment\Component\Category\Model\CategoryInterface;
 use Akeneo\Pim\Enrichment\Component\FileStorage;
 use Akeneo\Test\IntegrationTestsBundle\Configuration\CatalogInterface;
-use Akeneo\Test\IntegrationTestsBundle\Security\SystemUserAuthenticator;
 use Akeneo\UserManagement\Component\Model\User;
 use Akeneo\UserManagement\Component\Model\UserInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -36,7 +35,7 @@ abstract class TestCase extends KernelTestCase
      */
     protected function setUp(): void
     {
-        static::bootKernel(['debug' => false]);
+        $this->testKernel = static::bootKernel(['debug' => false]);
         $this->catalog = $this->get('akeneo_integration_tests.catalogs');
 
         if (null !== $this->getConfiguration()) {
@@ -45,12 +44,7 @@ abstract class TestCase extends KernelTestCase
         }
 
         // authentication should be done after loading the database as the user is created with first activated locale as default locale
-        $authenticator = new SystemUserAuthenticator(
-            $this->get('pim_user.factory.user'),
-            $this->get('pim_user.repository.group'),
-            $this->get('pim_user.repository.role'),
-            $this->get('security.token_storage')
-        );
+        $authenticator = $this->get('akeneo_integration_tests.security.system_user_authenticator');
         $authenticator->createSystemUser();
 
         $this->get('pim_connector.doctrine.cache_clearer')->clear();
@@ -63,7 +57,7 @@ abstract class TestCase extends KernelTestCase
      */
     protected function get(string $service)
     {
-        return static::$kernel->getContainer()->get($service);
+        return self::$container->get($service);
     }
 
     /**
@@ -73,7 +67,7 @@ abstract class TestCase extends KernelTestCase
      */
     protected function getParameter(string $parameter)
     {
-        return static::$kernel->getContainer()->getParameter($parameter);
+        return self::$container->getParameter($parameter);
     }
 
     /**
@@ -83,7 +77,7 @@ abstract class TestCase extends KernelTestCase
      */
     protected function hasParameter(string $parameter)
     {
-        return static::$kernel->getContainer()->hasParameter($parameter);
+        return self::$container->hasParameter($parameter);
     }
 
     /**
@@ -93,9 +87,6 @@ abstract class TestCase extends KernelTestCase
     {
         $connectionCloser = $this->get('akeneo_integration_tests.doctrine.connection.connection_closer');
         $connectionCloser->closeConnections();
-
-        $this->esClient = null;
-        $this->esConfigurationLoader = null;
 
         parent::tearDown();
     }

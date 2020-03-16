@@ -56,7 +56,10 @@ class ListRootCategoriesWithCountHandler
             $this->categoryRepository->find($query->categoryIdSelectedAsFilter()) : null;
 
         if (null === $categorySelectedAsFilter) {
-            $categorySelectedAsFilter = $this->userContext->getUserProductCategoryTree();
+            $categorySelectedAsFilter = $this->userContext->getAccessibleUserTree();
+            if ($categorySelectedAsFilter === null) {
+                return [];
+            }
         }
         $rootCategoryIdToExpand = $categorySelectedAsFilter->getRoot();
 

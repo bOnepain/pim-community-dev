@@ -5,6 +5,7 @@ namespace Oro\Bundle\PimDataGridBundle\Normalizer;
 use Akeneo\Pim\Enrichment\Component\Product\Model\ProductInterface;
 use Akeneo\Pim\Enrichment\Component\Product\Normalizer\InternalApi\ImageNormalizer;
 use Akeneo\Pim\Enrichment\Component\Product\Query\GetProductCompletenesses;
+use Symfony\Component\Serializer\Normalizer\CacheableSupportsMethodInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Serializer\SerializerAwareInterface;
 use Symfony\Component\Serializer\SerializerAwareTrait;
@@ -16,7 +17,7 @@ use Symfony\Component\Serializer\SerializerAwareTrait;
  * @copyright 2017 Akeneo SAS (http://www.akeneo.com)
  * @license   http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
-class ProductAssociationNormalizer implements NormalizerInterface, SerializerAwareInterface
+class ProductAssociationNormalizer implements NormalizerInterface, SerializerAwareInterface, CacheableSupportsMethodInterface
 {
     use SerializerAwareTrait;
 
@@ -57,7 +58,7 @@ class ProductAssociationNormalizer implements NormalizerInterface, SerializerAwa
         $data['is_associated'] = $context['is_associated'];
         $data['label'] = $product->getLabel($locale, $channel);
         $data['completeness'] = $this->getCompletenessRatio($product, $context);
-        $data['image'] = $this->imageNormalizer->normalize($product->getImage(), $context['data_locale']);
+        $data['image'] = $this->imageNormalizer->normalize($product->getImage(), $context['data_locale'], $context['data_channel']);
 
         return $data;
     }
@@ -68,6 +69,11 @@ class ProductAssociationNormalizer implements NormalizerInterface, SerializerAwa
     public function supportsNormalization($data, $format = null)
     {
         return $data instanceof ProductInterface && 'datagrid' === $format;
+    }
+
+    public function hasCacheableSupportsMethod(): bool
+    {
+        return true;
     }
 
     /**

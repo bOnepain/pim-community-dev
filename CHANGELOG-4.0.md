@@ -1,14 +1,64 @@
 # 4.0.x
 
-# Bug fixes
+- PIM-9134: Remove error notif when a user saves a product and they have no view rights on the attribute used as label 
+
+# 4.0.8 (2020-03-05)
+
+- PIM-9129: Fix missing brightness measure translations
+
+# 4.0.7 (2020-03-04)
+
+## Technical Improvements
+
+- #11583: Remove useless GLOB_BRACE flag from standard Kernel
+
+# 4.0.6 (2020-02-19)
+
+# 4.0.5 (2020-02-14)
+
+# 4.0.4 (2020-02-12)
+
+- PIM-9094: Fix non public controller class for Oro Translation
+
+# 4.0.3 (2020-02-05)
+
+# 4.0.2 (2020-02-04)
+
+## Bug fixes
+
+- PIM-9076: Fix product count on datagrid when more than 10000 products
+
+# 4.0.1 (2020-01-22)
+
+# 4.0.0 (2020-01-15)
+
+## New features
+
+- API-649: Set up Connections
+- API-767: Audit Connections
+
+## Bug fixes
 
 - GITHUB-10247: Fix regex to compile the frontend assets. Thanks @liamjtoohey!
+- PIM-8894: Change product identifier validation to forbid surrounding spaces
 
-# Technical Improvements
-
+## Technical Improvements
 - TIP-1185: Use a single index "product_and_product_model_index" to search on product and product models, instead dedicated product/product model indexes
+- TIP-1159: Improve the performance of the calculation of the completeness for the products
+- TIP-1225: Improve the performance of the indexation of the products
+- TIP-1174: Improve the performance of the indexation of the product models
+- TIP-1176: Improve the performance of the computation of product model descendant when updating a product model. The "compute product model descendant" job does not exist anymore. The computation is now done synchronously in the API thanks the improvement done in TIP-1225 and TIP-1174.
 
 ## BC breaks
+
+### PHP Server
+- Install the GNU Aspell spell-checker package: `aspell`
+  Install the dictionaries for Aspell: `aspell-en`, `aspell-es`, `aspell-de`, `aspell-fr`
+  Define the binary path for Aspell in the ENV variable: `ASPELL_BINARY_PATH`. (The default path is `aspell`)
+
+### Storage configuration
+- Removes the "tmp_storage_dir" parameter. Please use "sys_get_temp_dir()" in your code instead.
+- Removes all the directories parameter. Please use the associated Flysystem filesystem in your code instead.
 
 ### Elasticsearch
 
@@ -22,6 +72,7 @@
 
 ### Codebase
 
+- Change constructor of `Akeneo\UserManagement\Bundle\Controller\Rest\UserController` to add `$securityFacade` as a non-nullable argument.
 - Remove class `Akeneo\Pim\Enrichment\Component\Product\Manager\CompletenessManager`
 - Remove service `pim_catalog.manager.completeness`
 - Remove class `Akeneo\Pim\Enrichment\Component\Product\Completeness\CompletenessGenerator`
@@ -244,6 +295,88 @@
 - Move class from `Akeneo\Pim\Enrichment\Bundle\ProductModel\Query\Sql\GetProductAssociationsByProductModelCodes` to `Akeneo\Pim\Enrichment\Bundle\Storage\Sql\ProductModel\GetProductAssociationsByProductModelCodes`
 - Move class from `Akeneo\Pim\Enrichment\Bundle\ProductModel\Query\Sql\GetProductModelsAssociationsByProductModelCodes` to `Akeneo\Pim\Enrichment\Bundle\Storage\Sql\ProductModel\GetProductModelsAssociationsByProductModelCodes`
 - Move class from `Akeneo\Pim\Enrichment\Bundle\ProductModel\Query\Sql\GetValuesAndPropertiesFromProductModelCodes` to `Akeneo\Pim\Enrichment\Bundle\Storage\Sql\ProductModel\GetValuesAndPropertiesFromProductModelCodes`
+- Change constructor of `Akeneo\Pim\Enrichment\Bundle\Controller\ExternalApi\ProductController` to add `Akeneo\Tool\Bundle\ApiBundle\EventSubscriber\BatchEventSubscriberInterface`
+- Change constructor of `Akeneo\Pim\Enrichment\Bundle\Controller\ExternalApi\ProductModelController` to add `Akeneo\Tool\Bundle\ApiBundle\EventSubscriber\BatchEventSubscriberInterface`
+- Move all factory classes in `Akeneo\Pim\Enrichment\Component\Product\Factory\Read\Value` to `Akeneo\Pim\Enrichment\Component\Product\Factory\Value`
+- Move class from `Akeneo\Pim\Enrichment\Component\Product\Factory\Read\ValueCollectionFactory` to `Akeneo\Pim\Enrichment\Component\Product\Factory\ValueCollectionFactory`
+- Move class from `Akeneo\Pim\Enrichment\Component\Product\Factory\Read\WriteValueCollectionFactory` to `Akeneo\Pim\Enrichment\Component\Product\Factory\WriteValueCollectionFactory`
+- Move all factory classes in `Akeneo\Pim\Enrichment\Component\Product\Factory\Read\Value` to `Akeneo\Pim\Enrichment\Component\Product\Factory\Value`
+- Move class from `Akeneo\Pim\Enrichment\Component\Product\Factory\Read\ValueCollectionFactory` to `Akeneo\Pim\Enrichment\Component\Product\Factory\ValueCollectionFactory`
+- Move class from `Akeneo\Pim\Enrichment\Component\Product\Factory\Read\WriteValueCollectionFactory` to `Akeneo\Pim\Enrichment\Component\Product\Factory\WriteValueCollectionFactory`
+- Change constructor of `Akeneo\Pim\Enrichment\Bundle\Controller\InternalApi\ValuesController` to add `Akeneo\Pim\Enrichment\Component\Product\Comparator\Filter\FilterInterface`
+- Change constructor of `Akeneo\Pim\Enrichment\Component\Product\Connector\Processor\MassEdit\EditAttributesProcessor` to add `Akeneo\Pim\Enrichment\Component\Product\Comparator\Filter\FilterInterface` and `Akeneo\Pim\Enrichment\Component\Product\Comparator\Filter\FilterInterface`
+- Change constructor of `Akeneo\Pim\Enrichment\Component\Product\Connector\Processor\Normalization\ProductProcessor` to
+    - remove `Akeneo\Pim\Enrichment\Component\Product\ValuesFiller\EntityWithFamilyValuesFillerInterface`
+    - add `Akeneo\Pim\Enrichment\Component\Product\ValuesFiller\FillMissingValuesInterface`
+- Change constructor of `Akeneo\Pim\Enrichment\Component\Product\Connector\Processor\QuickExport\ProductAndProductModelProcessor` to
+    - remove `Akeneo\Pim\Enrichment\Component\Product\ValuesFiller\EntityWithFamilyValuesFillerInterface`
+    - add `Akeneo\Pim\Enrichment\Component\Product\ValuesFiller\FillMissingValuesInterface` (as `fillMissingProductModelValues`)
+    - add `Akeneo\Pim\Enrichment\Component\Product\ValuesFiller\FillMissingValuesInterface` (as `fillMissingProductValues`)
+- Change constructor of `Akeneo\Pim\Enrichment\Component\Product\Normalizer\InternalApi` to
+    - remove `Akeneo\Pim\Enrichment\Component\Product\ValuesFiller\EntityWithFamilyValuesFillerInterface`
+    - add `Akeneo\Pim\Enrichment\Component\Product\ValuesFiller\FillMissingValuesInterface`
+- Change constructor of `Akeneo\Pim\Enrichment\Component\Product\Normalizer\InternalApi` to
+    - remove `Akeneo\Pim\Enrichment\Component\Product\ValuesFiller\EntityWithFamilyValuesFillerInterface`
+    - add `Akeneo\Pim\Enrichment\Component\Product\ValuesFiller\FillMissingValuesInterface`
+- Remove interface `Akeneo\Pim\Enrichment\Component\Product\Completeness\Checker\ValueCompleteCheckerInterface` and its concrete implementations:
+    `Akeneo\Pim\Enrichment\Component\Product\Completeness\Checker\ValueCompleteChecker`, `Akeneo\Pim\Enrichment\Component\Product\Completeness\Checker\MediaCompleteChecker`,
+    `Akeneo\Pim\Enrichment\Component\Product\Completeness\Checker\MetricCompleteChecker`, `Akeneo\Pim\Enrichment\Component\Product\Completeness\Checker\PriceCompleteChecker`
+    and `Akeneo\Pim\Enrichment\Component\Product\Completeness\Checker\SimpleCompleteChecker` 
+- Change constructors of `Akeneo\Platform\Bundle\ImportExportBundle\Controller\ExportExecutionController` and `Akeneo\Platform\Bundle\ImportExportBundle\Controller\ExportExecutionController` to remove
+  - `Symfony\Bundle\FrameworkBundle\Templating\EngineInterface`,
+  - `Symfony\Component\Translation\TranslatorInterface`,
+  - `Akeneo\Tool\Bundle\BatchBundle\Monolog\Handler\BatchLogHandler`,
+  - `Akeneo\Tool\Bundle\BatchBundle\Manager\JobExecutionManager` and
+  - `$jobType`
+- Remove class `Akeneo\Platform\Bundle\ImportExportBundle\Controller\ExportProfileController`
+- Remove class `Akeneo\Platform\Bundle\ImportExportBundle\Controller\ImportProfileController`
+- Remove class `Akeneo\Platform\Bundle\ImportExportBundle\Controller\JobProfileController`
+- Remove class `Akeneo\Platform\Bundle\ImportExportBundle\Form\Type\JobInstanceFormType`
+- Remove class `Akeneo\Platform\Bundle\ImportExportBundle\Form\Subscriber\JobInstanceSubscriber`
+- Remove class `Akeneo\Pim\Enrichment\Component\Product\ValuesFiller\AbstractEntityWithFamilyValuesFiller`
+- Remove class `Akeneo\Pim\Enrichment\Component\Product\ValuesFiller\EntityWithFamilyVariantValuesFiller`
+- Remove class `Akeneo\Pim\Enrichment\Component\Product\ValuesFiller\ProductValuesFiller`
+- Remove method `addAttribute` from `Akeneo\Pim\Enrichment\Component\Product\Builder\EntityWithValuesBuilderInterface`
+- Remove interface `Akeneo\Pim\Enrichment\Component\Product\ValuesFiller\EntityWithFamilyValuesFillerInterface`
+- Remove class `Akeneo\Pim\Enrichment\Component\Product\Factory\ValueFactory`
+- Remove class `Akeneo\Pim\Enrichment\Component\Product\Factory\Write\Value\ScalarValueFactory`
+- Remove class `Akeneo\Pim\Enrichment\Component\Product\Factory\Write\Value\MetricValueFactory`
+- Remove class `Akeneo\Pim\Enrichment\Component\Product\Factory\Write\Value\PriceCollectionValueFactory`
+- Remove class `Akeneo\Pim\Enrichment\Component\Product\Factory\Write\Value\OptionValueFactory`
+- Remove class `Akeneo\Pim\Enrichment\Component\Product\Factory\Write\Value\OptionsValueFactory`
+- Remove class `Akeneo\Pim\Enrichment\Component\Product\Factory\Write\Value\MediaValueFactory`
+- Remove class `Akeneo\Pim\Enrichment\Component\Product\Factory\Write\Value\DateValueFactory`
+- Remove class `Akeneo\Pim\Enrichment\Component\Product\Factory\Write\Value\ReferenceDataValueFactory`
+- Remove class `Akeneo\Pim\Enrichment\Component\Product\Factory\Write\Value\ReferenceDataCollectionValueFactory`
+- Remove class `Akeneo\Pim\Enrichment\Component\Product\Factory\PriceFactory`
+- Remove class `Akeneo\Pim\Enrichment\Bundle\Form\Subscriber\BindAssociationTargetsSubscriber`
+- Remove class `Akeneo\Pim\Enrichment\Bundle\Form\Type\GroupType`
+- Remove class `Akeneo\UserManagement\Bundle\Form\Event\UserFormBuilderEvent`
+- Remove class `Oro\Bundle\DataGridBundle\Datasource\Orm\ConstantPagerIterableResult`
+- Remove class `Oro\Bundle\DataGridBundle\Datasource\Orm\IterableResult`
+- Remove interface `Oro\Bundle\DataGridBundle\Datasource\Orm\IterableResultInterface`
+- Remove methods `getCurrentMaxLink`, `getLinks`, `haveToPaginate`, `getCursor`, `setCursor`, `getObjectByCursor`, `getCurrent`, `getNext`, `getPrevious`, `getFirstIndex`, `getLastIndex`, `getFirstPage`, `getLastPage`, `getNextPage`, `getPreviousPage`, `getMaxPageLinks`, `setMaxPageLinks`, `isFirstPage`, `isLastPage`, `current`, `key`, `next`, `rewind`, `valid`, `count`, `serialize`, `unserialize` from
+  - `Oro\Bundle\DataGridBundle\Extension\Pager\AbstractPager`
+  - `Oro\Bundle\DataGridBundle\Extension\Pager\DummyPager`
+  - `Oro\Bundle\DataGridBundle\Extension\Pager\Orm\Pager`
+  - `Oro\Bundle\DataGridBundle\Extension\Pager\PagerInterface`
+  - `Oro\Bundle\PimDataGridBundle\Extension\Pager\AbstractPager`
+  - `Oro\Bundle\PimDataGridBundle\Extension\Pager\Orm\Pager`
+- Remove class `Oro\Bundle\DataGridBundle\ORM\Query\BufferedQueryResultIterator`
+- Remove class `Oro\Bundle\PimDataGridBundle\EventSubscriber\DefaultViewSubscriber`
+- Move class from `Akeneo\Pim\Structure\Bundle\Doctrine\ORM\Query\FamilyVariantsByAttributeAxes` to `Akeneo\Pim\Structure\Bundle\Storage\Sql\FamilyVariantsByAttributeAxes`
+- Move class from `Akeneo\Pim\Structure\Bundle\Doctrine\ORM\Query\FindAttributeGroupOrdersEqualOrSuperiorTo` to `Akeneo\Pim\Structure\Bundle\Storage\Sql\SqlFindAttributeGroupOrdersEqualOrSuperiorTo` and change constructor to
+    - remove `Doctrine\ORM\EntityManagerInterface`
+    - add `Doctrine\DBAL\Connection`
+- Change constructor of `Akeneo\Pim\Enrichment\Component\Product\Connector\Job\EnsureConsistentAttributeGroupOrderTasklet` to
+    - remove `Akeneo\Pim\Structure\Bundle\Doctrine\ORM\Query\FindAttributeGroupOrdersEqualOrSuperiorTo` (implementation class)
+    - add `Akeneo\Pim\Structure\Component\AttributeGroup\Query\FindAttributeGroupOrdersEqualOrSuperiorTo` (interface)
+- Change constructor of `Akeneo\Platform\Bundle\ImportExportBundle\Controller\Ui\JobTrackerController` to remove
+    - `Symfony\Bundle\FrameworkBundle\Templating\EngineInterface`
+    - `Symfony\Component\Translation\TranslatorInterface`
+    - `Symfony\Component\Serializer\SerializerInterface`
+    - `Akeneo\Tool\Bundle\BatchQueueBundle\Manager\JobExecutionManager`
+- Update interface `src/Akeneo/UserManagement/Component/Model/UserInterface` and class `src/Akeneo/UserManagement/Component/Model/User`: add `defineAsApiUser` and `isApiUser` methods.
 
 ### CLI Commands
 
@@ -323,3 +456,21 @@ If you want to purge the completeness in order to recalculate it, please use the
     - `string $jobName`
 - Remove `pim_catalog.event_subscriber.index_products`
 - Rename service `pim_catalog.doctrine.query.attribute_is_an_family_variant_axis` in `akeneo.pim.structure.query.attribute_is_an_family_variant_axis`
+- Remove `pim_catalog.factory.value`, please use `akeneo.pim.enrichment.factory.value` instead
+- Remove `pim_catalog.factory.value.text`
+- Remove `pim_catalog.factory.value.textarea`
+- Remove `pim_catalog.factory.value.number`
+- Remove `pim_catalog.factory.value.boolean`
+- Remove `pim_catalog.factory.value.identifier`
+- Remove `pim_catalog.factory.value.metric`
+- Remove `pim_catalog.factory.value.price_collection`
+- Remove `pim_catalog.factory.value.option`
+- Remove `pim_catalog.factory.value.options`
+- Remove `pim_catalog.factory.value.file`
+- Remove `pim_catalog.factory.value.image`
+- Remove `pim_catalog.factory.value.date`
+- Remove `pim_reference_data.factory.product_value.reference_data`
+- Remove `pim_reference_data.factory.product_value.reference_data_collection`
+- Remove `pim_catalog.factory.price`
+- Rename service `pim_catalog.doctrine.query.find_attribute_group_orders_equal_or_superior_to` in `akeneo.pim.structure.query.find_attribute_group_orders_equal_or_superior_to`
+- Rename service `pim_catalog.doctrine.query.find_family_variants_identifiers_by_attribute_axes` in `akeneo.pim.structure.query.find_family_variants_identifiers_by_attribute_axes`

@@ -17,7 +17,6 @@ use Akeneo\Pim\Enrichment\Bundle\DependencyInjection\Compiler\RegisterProductQue
 use Akeneo\Pim\Enrichment\Bundle\DependencyInjection\Compiler\RegisterProductUpdaterPass;
 use Akeneo\Pim\Enrichment\Bundle\DependencyInjection\Compiler\RegisterRendererPass;
 use Akeneo\Pim\Enrichment\Bundle\DependencyInjection\Compiler\RegisterSerializerPass;
-use Akeneo\Pim\Enrichment\Bundle\DependencyInjection\Compiler\RegisterValueFactoryPass;
 use Akeneo\Pim\Enrichment\Bundle\DependencyInjection\Compiler\ResolveDoctrineTargetModelPass;
 use Akeneo\Pim\Structure\Bundle\DependencyInjection\Compiler\RegisterAttributeTypePass;
 use Akeneo\Tool\Bundle\StorageUtilsBundle\DependencyInjection\Compiler\ResolveDoctrineTargetRepositoryPass;
@@ -42,14 +41,12 @@ class AkeneoPimEnrichmentBundle extends Bundle
             ->addCompilerPass(new ResolveDoctrineTargetRepositoryPass('pim_repository'))
             ->addCompilerPass(new RegisterAttributeConstraintGuessersPass())
             ->addCompilerPass(new RegisterAttributeTypePass())
-            ->addCompilerPass(new RegisterValueFactoryPass())
             ->addCompilerPass(new RegisterProductQueryFilterPass('product'))
             ->addCompilerPass(new RegisterProductQueryFilterPass('product_model'))
             ->addCompilerPass(new RegisterProductQuerySorterPass())
             ->addCompilerPass(new RegisterProductUpdaterPass())
             ->addCompilerPass(new RegisterFilterPass())
             ->addCompilerPass(new RegisterComparatorsPass())
-            ->addCompilerPass(new RegisterCompleteCheckerPass())
             ->addCompilerPass(new RegisterLocalizersPass())
             ->addCompilerPass(new RegisterPresentersPass())
             ->addCompilerPass(new RegisterSerializerPass('pim_internal_api_serializer'))

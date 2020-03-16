@@ -16,7 +16,7 @@ Feature: Update the product associations
 
   @critical
   Scenario: Successfully add an association
-    Given I press the "Add associations" button and wait for modal
+    Given I add associations
     And I search "pat"
     And I check the row "patrick"
     And the item picker basket should contain patrick
@@ -25,7 +25,7 @@ Feature: Update the product associations
     And I should see the text "1 product(s), 0 product model(s) and 0 group(s)"
 
   Scenario: Successfully delete an association
-    Given I press the "Add associations" button and wait for modal
+    Given I add associations
     And I search "pat"
     And I check the row "patrick"
     And the item picker basket should contain patrick
@@ -41,7 +41,7 @@ Feature: Update the product associations
   @critical
   Scenario: Successfully add a product model as association
     Given I should see the text "There are no associated products"
-    And I press the "Add associations" button and wait for modal
+    And I add associations
     And I should see the text "Add Cross sell associations"
     And I should see the text "Belt"
     And I search "juno"
@@ -50,21 +50,3 @@ Feature: Update the product associations
     When I press the "Confirm" button in the popin
     Then I should see product "juno"
     And I should see the text "0 product(s), 1 product model(s) and 0 group(s)"
-
-  @ce
-  Scenario: Successfully delete a product model as association
-    Given I should see the text "There are no associated products"
-    And I press the "Add associations" button and wait for modal
-    And I should see the text "Add Cross sell associations"
-    And I should see the text "Belt"
-    And I search "juno"
-    And I check the row "juno"
-    And the item picker basket should contain juno
-    And I press the "Confirm" button in the popin
-    And I should see product "juno"
-    And I remove the row "juno"
-    And I should see the text "There are unsaved changes"
-    And I should not see product "juno"
-    When I save the product
-    Then I should not see product "juno"
-    And I should see the text "0 product(s), 0 product model(s) and 0 group(s)"

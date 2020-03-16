@@ -15,7 +15,6 @@ use Pim\Behat\Context\Domain\Collect\ImportProfilesContext;
 use Pim\Behat\Context\Domain\Enrich\AttributeTabContext;
 use Pim\Behat\Context\Domain\Enrich\CompletenessContext;
 use Pim\Behat\Context\Domain\Enrich\FamilyVariantConfigurationContext;
-use Pim\Behat\Context\Domain\Enrich\GridPaginationContext;
 use Pim\Behat\Context\Domain\Enrich\ProductGroupContext;
 use Pim\Behat\Context\Domain\SecondaryActionsContext;
 use Pim\Behat\Context\Domain\Spread\ExportBuilderContext;
@@ -99,7 +98,6 @@ class FeatureContext extends MinkContext implements KernelAwareContext
         $this->contexts['domain-export-profiles'] = $environment->getContext(ExportProfilesContext::class);
         $this->contexts['domain-xlsx-files'] = $environment->getContext(XlsxFileContext::class);
         $this->contexts['domain-import-profiles'] = $environment->getContext(ImportProfilesContext::class);
-        $this->contexts['domain-pagination-grid'] = $environment->getContext(GridPaginationContext::class);
         $this->contexts['domain-tree'] = $environment->getContext(TreeContext::class);
         $this->contexts['domain-secondary-actions'] = $environment->getContext(SecondaryActionsContext::class);
         $this->contexts['domain-group'] = $environment->getContext(ProductGroupContext::class);
@@ -142,7 +140,7 @@ class FeatureContext extends MinkContext implements KernelAwareContext
      */
     public function getContainer()
     {
-        return $this->kernel->getContainer();
+        return $this->kernel->getContainer()->get('test.service_container');
     }
 
     /**
@@ -331,11 +329,16 @@ class FeatureContext extends MinkContext implements KernelAwareContext
      */
     public function iClickOnTheMissingRequiredAttributesOverviewLink()
     {
-        $link = $this->spin(function () {
-            return $this->getCurrentPage()->getMissingRequiredAttributesOverviewLink();
-        }, 'Cannot find the missing required attributes link');
+        $this->spin(function () {
+            $link = $this->getCurrentPage()->getMissingRequiredAttributesOverviewLink();
+            if (null === $link) {
+                return false;
+            }
 
-        $link->click();
+            $link->click();
+
+            return true;
+        }, 'Cannot click on the missing required attributes link');
     }
 
     /**

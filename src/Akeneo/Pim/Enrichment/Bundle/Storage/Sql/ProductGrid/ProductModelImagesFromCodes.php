@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Akeneo\Pim\Enrichment\Bundle\Storage\Sql\ProductGrid;
 
-use Akeneo\Pim\Enrichment\Component\Product\Factory\Read\WriteValueCollectionFactory;
+use Akeneo\Pim\Enrichment\Component\Product\Factory\WriteValueCollectionFactory;
 use Doctrine\DBAL\Connection;
 
 /**
@@ -118,7 +118,7 @@ final class ProductModelImagesFromCodes
                 SELECT 
                     pm.code as product_model_code,
                     COUNT(all_attribute_sets.family_variant_id) as number_level,
-                    pm.lvl as product_model_level,
+                    if(pm.parent_id is null, 0, 1) as product_model_level,
                     fv_set.level as image_code_level
                 FROM
                     pim_catalog_product_model pm
@@ -239,7 +239,7 @@ SQL;
                 a_image.is_scopable,
                 JSON_EXTRACT(
                     pm_child.raw_values,
-                    CONCAT('$.', a_image.code, '.', IF(is_scopable = 1, '":channel_code"', '"<all_channels>"'), '.', IF(is_localizable = 1, '":locale_code"', '"<all_locales>"'))
+                    CONCAT('$."', a_image.code, '".', IF(is_scopable = 1, '":channel_code"', '"<all_channels>"'), '.', IF(is_localizable = 1, '":locale_code"', '"<all_locales>"'))
                 ) as image_value
             FROM
                 pim_catalog_product_model pm_root
@@ -320,7 +320,7 @@ SQL;
                 product_child.raw_values,
                 JSON_EXTRACT(
                     product_child.raw_values,
-                    CONCAT('$.', a_image.code, '.', IF(is_scopable = 1, '":channel_code"', '"<all_channels>"'), '.', IF(is_localizable = 1, '":locale_code"', '"<all_locales>"'))
+                    CONCAT('$."', a_image.code, '".', IF(is_scopable = 1, '":channel_code"', '"<all_channels>"'), '.', IF(is_localizable = 1, '":locale_code"', '"<all_locales>"'))
                 ) as image_value
             FROM
                 pim_catalog_product_model pm_root

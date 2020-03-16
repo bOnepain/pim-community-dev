@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Akeneo\Pim\Enrichment\Bundle\Storage\Sql\ElasticsearchProjection;
 
+use Akeneo\Pim\Enrichment\Bundle\Elasticsearch\GetAdditionalPropertiesForProductModelProjectionInterface;
 use Akeneo\Pim\Enrichment\Bundle\Elasticsearch\GetElasticsearchProductModelProjectionInterface;
 use Akeneo\Pim\Enrichment\Bundle\Elasticsearch\Model\ElasticsearchProductModelProjection;
-use Akeneo\Pim\Enrichment\Component\Product\Factory\Read\ValueCollectionFactory;
+use Akeneo\Pim\Enrichment\Component\Product\Exception\ObjectNotFoundException;
+use Akeneo\Pim\Enrichment\Component\Product\Factory\ReadValueCollectionFactory;
 use Akeneo\Pim\Enrichment\Component\Product\Normalizer\Indexing\Value\ValueCollectionNormalizer;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Types\Type;
@@ -22,20 +24,25 @@ class GetElasticsearchProductModelProjection implements GetElasticsearchProductM
     /** @var Connection */
     private $connection;
 
-    /** @var ValueCollectionFactory */
-    private $valueCollectionFactory;
+    /** @var ReadValueCollectionFactory */
+    private $readValueCollectionFactory;
 
     /** @var NormalizerInterface */
     private $valueCollectionNormalizer;
 
+    /** @var GetAdditionalPropertiesForProductModelProjectionInterface[] */
+    private $additionalDataProviders = [];
+
     public function __construct(
         Connection $connection,
-        ValueCollectionFactory $valueCollectionFactory,
-        NormalizerInterface $valueCollectionNormalizer
+        ReadValueCollectionFactory $readValueCollectionFactory,
+        NormalizerInterface $valueCollectionNormalizer,
+        iterable $additionalDataProviders
     ) {
         $this->connection = $connection;
-        $this->valueCollectionFactory = $valueCollectionFactory;
+        $this->readValueCollectionFactory = $readValueCollectionFactory;
         $this->valueCollectionNormalizer = $valueCollectionNormalizer;
+        $this->additionalDataProviders = $additionalDataProviders;
     }
 
     public function fromProductModelCodes(array $productModelCodes): array
@@ -44,17 +51,21 @@ class GetElasticsearchProductModelProjection implements GetElasticsearchProductM
         $completeFilters = $this->getCompleteFilterFromProductModelCodes($productModelCodes);
         $attributes = $this->getAttributesFromProductModelCodes($productModelCodes);
 
-        $productProjections = [];
+        $productModelProjections = [];
+
+        $rowCodes = array_map(function (array $row) {
+            return $row['code'];
+        }, $valuesAndProperties);
+
+        $diffCodes = array_diff($productModelCodes, $rowCodes);
+        if (count($diffCodes) > 0) {
+            throw new ObjectNotFoundException(
+                sprintf('Product model codes "%s" were not found.', implode(',', $diffCodes))
+            );
+        }
 
         foreach ($productModelCodes as $productModelCode) {
-            $valueCollection = $this
-                ->valueCollectionFactory
-                ->createFromStorageFormat($valuesAndProperties[$productModelCode]['values']);
-            $values = $this
-                ->valueCollectionNormalizer
-                ->normalize($valueCollection, ValueCollectionNormalizer::INDEXING_FORMAT_PRODUCT_AND_MODEL_INDEX);
-
-            $productProjections[$productModelCode] = new ElasticsearchProductModelProjection(
+            $productModelProjections[$productModelCode] = new ElasticsearchProductModelProjection(
                 $valuesAndProperties[$productModelCode]['id'],
                 $valuesAndProperties[$productModelCode]['code'],
                 $valuesAndProperties[$productModelCode]['created'],
@@ -65,7 +76,7 @@ class GetElasticsearchProductModelProjection implements GetElasticsearchProductM
                 $valuesAndProperties[$productModelCode]['category_codes'],
                 $valuesAndProperties[$productModelCode]['ancestor_category_codes'],
                 $valuesAndProperties[$productModelCode]['parent_code'],
-                $values,
+                $valuesAndProperties[$productModelCode]['values'],
                 $completeFilters[$productModelCode]['all_complete'],
                 $completeFilters[$productModelCode]['all_incomplete'],
                 $valuesAndProperties[$productModelCode]['parent_id'],
@@ -75,7 +86,14 @@ class GetElasticsearchProductModelProjection implements GetElasticsearchProductM
             );
         }
 
-        return $productProjections;
+        foreach ($this->additionalDataProviders as $additionalDataProvider) {
+            $additionalDataPerProductModel = $additionalDataProvider->fromProductModelCodes($productModelCodes);
+            foreach ($additionalDataPerProductModel as $productModelCode => $additionalData) {
+                $productModelProjections[$productModelCode] = $productModelProjections[$productModelCode]->addAdditionalData($additionalData);
+            }
+        }
+
+        return $productModelProjections;
     }
 
     private function getValuesAndPropertiesFromProductModelCodes(array $productModelCodes): array
@@ -156,10 +174,12 @@ SQL;
             ['productModelCodes' => Connection::PARAM_STR_ARRAY]
         );
 
+        $rows = $this->createValueCollectionInBatchFromRows($rows);
+
         $platform = $this->connection->getDatabasePlatform();
         $results = [];
         foreach ($rows as $row) {
-            $values = json_decode($row['raw_values'], true);
+            $values = $row['raw_values'];
 
             $results[$row['code']] = [
                 'id' => (int) $row['id'],
@@ -173,10 +193,10 @@ SQL;
                 'family_code' => $row['family_code'],
                 'family_labels' => json_decode($row['family_labels'], true),
                 'family_variant_code' => $row['family_variant_code'],
-                'category_codes' => json_decode($row['category_codes']),
-                'ancestor_category_codes' => json_decode($row['ancestor_category_codes']),
+                'category_codes' => json_decode($row['category_codes'], true),
+                'ancestor_category_codes' => json_decode($row['ancestor_category_codes'], true),
                 'parent_code' => $row['parent_code'],
-                'values' => $values,
+                'values' => $this->valueCollectionNormalizer->normalize($row['values'], ValueCollectionNormalizer::INDEXING_FORMAT_PRODUCT_AND_MODEL_INDEX),
                 'parent_id' => $row['parent_id'] ? (int) $row['parent_id'] : null,
                 'labels' => isset($values[$row['attribute_as_label_code']]) ? $values[$row['attribute_as_label_code']] : [],
             ];
@@ -194,51 +214,49 @@ SQL;
     private function getCompleteFilterFromProductModelCodes(array $productModelCodes): array
     {
         $query = <<<SQL
-WITH product_model_completeness_by_channel_and_locale AS (
+WITH product_model_completeness_by_channel_id_and_locale_id AS (
     SELECT
-        product_model.code AS code,
-        locale.code AS locale_code,
-        channel.code AS channel_code,
+        product_model.code AS product_model_code,
+        completeness.locale_id,
+        completeness.channel_id,
         SUM(completeness.missing_count) = 0 AS all_complete,
         MIN(completeness.missing_count) <> 0 AS all_incomplete
     FROM pim_catalog_product_model product_model
     INNER JOIN pim_catalog_product product ON product.product_model_id = product_model.id
     INNER JOIN pim_catalog_completeness completeness ON product.id = completeness.product_id
-    INNER JOIN pim_catalog_locale locale ON completeness.locale_id = locale.id
-    INNER JOIN pim_catalog_channel channel ON completeness.channel_id = channel.id
     WHERE product_model.code IN (:productModelCodes)
-    GROUP BY code, locale_code, channel_code
+    GROUP BY product_model_code, completeness.locale_id, completeness.channel_id
 UNION ALL
     SELECT
-        root_product_model.code AS code,
-        locale.code AS locale_code,
-        channel.code AS channel_code,
+        root_product_model.code AS product_model_code,
+        completeness.locale_id,
+        completeness.channel_id,
         SUM(completeness.missing_count) = 0 AS allcomplete,
         MIN(completeness.missing_count) <> 0 AS allincomplete
     FROM pim_catalog_product_model product_model
     INNER JOIN pim_catalog_product_model root_product_model ON product_model.parent_id = root_product_model.id
     INNER JOIN pim_catalog_product product ON product.product_model_id = product_model.id
     INNER JOIN pim_catalog_completeness completeness ON product.id = completeness.product_id
-    INNER JOIN pim_catalog_locale locale ON completeness.locale_id = locale.id
-    INNER JOIN pim_catalog_channel channel ON completeness.channel_id = channel.id
     WHERE root_product_model.code IN (:productModelCodes)
-    GROUP BY code, locale_code, channel_code
+    GROUP BY product_model_code, completeness.locale_id, completeness.channel_id
 ), 
 product_model_completeness_by_channel AS (
     SELECT
-         code,
-         channel_code,
-         JSON_OBJECTAGG(locale_code, all_complete) AS all_complete,
-         JSON_OBJECTAGG(locale_code, all_incomplete) AS all_incomplete
-    FROM product_model_completeness_by_channel_and_locale
-    GROUP BY code, channel_code
+         product_model_code,
+         channel.code AS channel_code,
+         JSON_OBJECTAGG(locale.code, all_complete) AS all_complete,
+         JSON_OBJECTAGG(locale.code, all_incomplete) AS all_incomplete
+    FROM product_model_completeness_by_channel_id_and_locale_id product_model_completeness
+    JOIN pim_catalog_channel channel ON channel.id = product_model_completeness.channel_id
+    JOIN pim_catalog_locale locale ON locale.id = product_model_completeness.locale_id
+    GROUP BY product_model_code, channel_code
 )
 SELECT
-    code,
+    product_model_code,
     JSON_OBJECTAGG(channel_code, all_complete) AS all_complete,
     JSON_OBJECTAGG(channel_code, all_incomplete) AS all_incomplete
 FROM product_model_completeness_by_channel
-GROUP BY code
+GROUP BY product_model_code
 SQL;
 
         $rows = $this->connection->fetchAll(
@@ -256,7 +274,7 @@ SQL;
         );
 
         foreach ($rows as $row) {
-            $results[$row['code']] = [
+            $results[$row['product_model_code']] = [
                 'all_complete' => json_decode($row['all_complete'], true),
                 'all_incomplete' => json_decode($row['all_incomplete'], true),
             ];
@@ -355,5 +373,44 @@ SQL;
         }
 
         return $results;
+    }
+
+    /**
+     * Create value collection for several product models in batch to minimize IO and improve performance.
+     *
+     * @param [
+     *          [
+     *              'code' => 'foo',
+     *              'raw_values' => ['attribute' => ['channel' => ['locale' => 'data' ]]]
+     *          ]
+     *        ]
+     *
+     * @return [
+     *          'foo' => [
+     *              'code' => 'foo',
+     *              'raw_values' => ['attribute' => ['channel' => ['locale' => 'data' ]]]
+     *              'values' => ValueCollection(...)
+     *          ]
+     *        ]
+     */
+    private function createValueCollectionInBatchFromRows(array $rows): array
+    {
+        $rowsIndexedByProductModelCode = [];
+        foreach ($rows as $row) {
+            $row['raw_values'] = \json_decode($row['raw_values'], true);
+            $rowsIndexedByProductModelCode[$row['code']] = $row;
+        }
+
+        $rawValuesCollection = [];
+        foreach ($rowsIndexedByProductModelCode as $code => $rowIndexedByProductModelCode) {
+            $rawValuesCollection[$code] = $rowIndexedByProductModelCode['raw_values'];
+        }
+
+        $valueCollections = $this->readValueCollectionFactory->createMultipleFromStorageFormat($rawValuesCollection);
+        foreach ($valueCollections as $code => $valueCollection) {
+            $rowsIndexedByProductModelCode[$code]['values'] = $valueCollection;
+        }
+
+        return $rowsIndexedByProductModelCode;
     }
 }

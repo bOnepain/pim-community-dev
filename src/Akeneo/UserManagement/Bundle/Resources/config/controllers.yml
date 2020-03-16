@@ -19,9 +19,11 @@ services:
             - '@security.password_encoder'
             - '@event_dispatcher'
             - '@session'
+            - '@doctrine.orm.entity_manager'
             - '@pim_user.remover.user'
             - '@pim_catalog.localization.factory.number'
             - '@translator'
+            - '@oro_security.security_facade'
 
     pim_user.controller.security_rest:
         public: true
@@ -35,14 +37,6 @@ services:
         class: '%pim_user.controller.user_group_rest.class%'
         arguments:
             - '@pim_user.repository.group'
-
-    pim_enrich.controller.rest.api_client:
-        public: true
-        class: 'Akeneo\UserManagement\Bundle\Controller\ApiClientController'
-        arguments:
-            - '@fos_oauth_server.client_manager.default'
-            - '@validator'
-            - '@pim_internal_api_serializer'
 
     pim_user.controller.user_role_rest:
         public: true
@@ -74,6 +68,7 @@ services:
             - '@pim_user.form.handler.reset'
             - '@security.token_storage'
             - '@pim_user.form.reset'
+            - '%mailer_url%'
 
     pim_user.controller.role:
         public: true
